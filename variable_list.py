@@ -53,6 +53,7 @@ CATEGORICAL = ["MomsRE", "HSGED", "INCOME", "MARITAL",
 "SecRole"]
 
 BOOLEAN = ["nicu", "premature", "lbw", 
+"SERVICE_USE_0_PRIVATE_INSURANCE1",
 "CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 "CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", 
 "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
@@ -84,11 +85,11 @@ BOOLEAN = ["nicu", "premature", "lbw",
 "nurserace_black",
 "nurserace_nativehawaiian_pacificislander",
 "nurserace_white"]
+"other_diseases"]
 
 NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
 "edd_enrollment_interval_weeks", "gest_weeks_intake"]
 
-TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+TIME = "client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 "EndDate","HireDate","NURSE_0_BIRTH_YEAR", "NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
 "NURSE_0_YEAR_NURSING_EXPERIENCE"]
-
