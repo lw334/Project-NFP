@@ -155,7 +155,7 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	return y_pred, y_pred_proba, y_test, train_time, test_time
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
-	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION 
+	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
 	'''generate evaluation results'''
 	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
 	rv = {}
@@ -177,7 +177,6 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 if __name__ == '__main__':
 
 ### OUTPUT EVALUATION TABLE
-	'''
 	#upload data
 	input_file = "../project_data9.csv"
 	df_in = readcsv_funct(input_file)
@@ -316,7 +315,7 @@ if __name__ == '__main__':
 	print "CHECK missing df_train", missing(df_train)
 	print "CHECK missing df_test", missing(df_test)
 	
-	'''
+	
 	df_train = pd.DataFrame.from_csv("train_1.csv")
 	df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
