@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import mode
-import matplotlib.pyplot as plt
 import itertools as iter
 from pandas import isnull, cut, Series, concat
 from time import time
