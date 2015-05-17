@@ -163,7 +163,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["precision"] = str(precision_score(y, y_pred))
 	rv["recall"] = str(recall_score(y, y_pred))
 	rv["f1"] = str(f1_score(y, y_pred))
-	rv["auc"] = str(roc_auc_score(y, y_pred))
+	rv["auc_roc"] = str(roc_auc_score(y, y_pred))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
 	#rv["auc_roc"] = str(auc(fpr, tpr))
@@ -209,9 +209,6 @@ if __name__ == '__main__':
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	df.drop(TIME, axis=1, inplace=True)
-
-	# calculate the baseline
-	baseline = str(1-df.describe()[y_col]["mean"])
 
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
@@ -338,7 +335,7 @@ if __name__ == '__main__':
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
 	classifiers = [LR]#[LR, RFC, DTC, BC, GBC]
-	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","auc_prc","train_time","test_time"])
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
 		y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
@@ -347,6 +344,7 @@ if __name__ == '__main__':
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
 	baseline = str(1-df.describe()[y_col]["mean"])
+	evaluation_result.loc["baseline"] = pd.Series([baseline,0,0,0,0,0,0])
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	# print "Baseline: "+baseline
