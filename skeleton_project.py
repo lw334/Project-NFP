@@ -107,7 +107,7 @@ def get_year(df, datelabel):
 	df[datelabel + 'yr'] = df[datelabel].dt.year
 
 def get_month(df, datelabel):
-	df[datelabel + 'yr'] = df[datelabel].dt.month
+	df[datelabel + 'mth'] = df[datelabel].dt.month
 
 def train_test_split(df,column_name,last_train_yr):
 	'''split function for main train and testing, according to last_train_yr'''
