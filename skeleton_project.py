@@ -94,6 +94,21 @@ def fill_median(df, column_name):
 	new_df = fill_nans(df, column_name,df[column_name].median())
 	return new_df 
 
+def change_time_var(df, datelabel):
+	'''fill in na before conversion'''
+	df[datelabel] = df[datelabel].astype('datetime64[ns]')
+
+def get_interval(df, startdate, enddate, labelinterval):
+	'''convert into datetime objects before using the function'''
+	df[labelinterval] = df[enddate] - df[startdate]
+	df[labelinterval] = df[labelinterval].dt.days
+
+def get_year(df, datelabel):
+	df[datelabel + 'yr'] = df[datelabel].dt.year
+
+def get_month(df, datelabel):
+	df[datelabel + 'yr'] = df[datelabel].dt.month
+
 def train_test_split(df,column_name,last_train_yr):
 	'''split function for main train and testing, according to last_train_yr'''
 	train_df = df.loc[(df[column_name] <= last_train_yr)]
