@@ -88,11 +88,11 @@ BOOLEAN = ["nicu", "premature", "lbw",
 "other_diseases"]
 
 NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
-"edd_enrollment_interval_weeks", "gest_weeks_intake"]
+"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
+"NURSE_0_YEAR_NURSING_EXPERIENCE"]
 
 TIME = "client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-"EndDate","HireDate","NURSE_0_BIRTH_YEAR", "NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-"NURSE_0_YEAR_NURSING_EXPERIENCE"]
+"EndDate","HireDate","NURSE_0_BIRTH_YEAR"]
 
 MISSING_COLS_LIST = ["CLIENT_ABUSE_AFRAID_0_PARTNER", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 "CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_HIT_0_SLAP_PARTNER",
