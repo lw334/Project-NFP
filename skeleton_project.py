@@ -129,6 +129,55 @@ def cv_split(df,column_name,last_train_yr, last_test_yr):
 	test_df = df.loc[(df[column_name] > last_train_yr) & (df[column_name] <= last_test_yr)]
 	return train_df, test_df
 
+def sequential_cv(df, total_pct, num_moves, train_pct, x_cols, y_col, clf_class, **kwargs):
+	index = 0
+	df_len = len(df)
+	train_size = np.round((df_len*total_pct)*train_pct)
+	test_size = np.round(df_len*total_pct) - train_size
+	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
+	step_size = train_size+test_size-overlap
+	for i in range(num_moves):
+		if i != num_moves-1:
+			train_df = df[index:index+train_size]
+			test_df = df[index+train_size:index+train_size+test_size]
+		else:
+			train_df = df[index:]
+			test_df = df[index+train_size:]
+		index += step_size
+		X_train = np.array(train_df[x_cols].as_matrix())
+		X_test = np.array(test_df[x_cols].as_matrix())
+		y_train = np.ravel(train_df[y_col])
+		y_test = np.ravel(test_df[y_col])
+		# train and test
+		clf = clf_class(**kwargs)
+		begin_train = time()
+		clf.fit(X_train, y_train)
+		end_train = time()
+		begin_test = time()
+		y_pred = clf.predict(X_test)
+		end_test = time()
+		y_pred_prob = clf.predict_proba(X_test)
+		train_time = end_train - begin_train
+		test_time = end_test - begin_test
+
+def test(df, total_pct, num_moves, train_pct):
+	index = 0
+	df_len = len(df)
+	train_size = np.round((df_len*total_pct)*train_pct)
+	test_size = np.round(df_len*total_pct) - train_size
+	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
+	step_size = train_size+test_size-overlap
+	for i in range(num_moves):
+		if i != num_moves-1:
+			train_df = df[index:index+train_size]
+			test_df = df[index+train_size:index+train_size+test_size]
+		else:
+			train_df = df[index:]
+			test_df = df[index+train_size:]
+		index += step_size
+		print train_df, test_df
+
+
 def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
@@ -136,9 +185,9 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix())
 	X_test = np.array(test_df[x_cols].as_matrix())
-	scaler = StandardScaler()
-	X_train = scaler.fit_transform(X_train)
-	X_test = scaler.fit_transform(X_test)
+	# scaler = StandardScaler()
+	# X_train = scaler.fit_transform(X_train)
+	# X_test = scaler.fit_transform(X_test)
 	y_train = np.ravel(train_df[y_col])
 	y_test = np.ravel(test_df[y_col])
 	# train and test
@@ -150,8 +199,8 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	y_pred = clf.predict(X_test)
 	end_test = time()
 	y_pred_proba = clf.predict_proba(X_test)
-	train_time = begin_train - end_train
-	test_time = begin_test - end_test
+	train_time = end_train - begin_train
+	test_time = end_test - begin_test
 	return y_pred, y_pred_proba, y_test, train_time, test_time
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
@@ -178,7 +227,7 @@ if __name__ == '__main__':
 
 ### OUTPUT EVALUATION TABLE
 	#upload data
-	input_file = "../project_data9.csv"
+	input_file = "project_data9.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -312,15 +361,21 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-	print "CHECK missing df_train", missing(df_train)
-	print "CHECK missing df_test", missing(df_test)
+	train_missing = missing(df_train)
+	test_missing = missing(df_test)
+	print "CHECK missing df_train", train_missing
+	print "CHECK missing df_test", test_missing
 	
-	df_train = pd.DataFrame.from_csv("train_1.csv")
-	df_test = pd.DataFrame.from_csv("test_1.csv")
+	# df_train = pd.DataFrame.from_csv("train_1.csv")
+	# df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
 	# Set dependent and independent variables
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+	for col in cols_to_drop:
+		df_train.drop(col, axis=1, inplace=True)
+		df_test.drop(col, axis=1, inplace=True)
 	y_col = 'premature'
-	x_cols = df_train.columns[3:10]
+	x_cols = df_train.columns[3:100]
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
@@ -331,7 +386,7 @@ if __name__ == '__main__':
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
-	classifiers = [LR]#[LR, RFC, DTC, BC, GBC]
+	classifiers = [RFC]#[LR, RFC, DTC, BC, GBC]
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -340,8 +395,9 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-	baseline = str(1-df.describe()[y_col]["mean"])
-	evaluation_result.loc["baseline"] = pd.Series([baseline,0,0,0,0,0,0])
+	baseline = str(1-df_test.describe()[y_col]["mean"])
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	# print "Baseline: "+baseline
