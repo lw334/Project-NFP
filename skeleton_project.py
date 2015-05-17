@@ -388,8 +388,16 @@ if __name__ == '__main__':
 	from sklearn.linear_model import LogisticRegression as LR
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
-	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
-	classifiers = [RFC]#[LR, RFC, DTC, BC, GBC]
+	
+	logit = LR(fit_intercept=False)
+	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	svm = LSVC(C=1.0, kernel='linear')#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
+	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
+	decisiontree = DTC(criterion='gini')#can also be 'entropy'
+	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
+	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
+
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
