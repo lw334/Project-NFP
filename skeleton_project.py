@@ -158,6 +158,8 @@ df = fill_str(df, TIME, "0000-00-00 00:00:00")
 change_time_var(df,TIME)
 get_year(df, TIME)
 
+########ONLY ISSUE IS DO WE WANT TO TRAIN ON THE YEARS THAT ARE 0000??? IE THAT WE HAVE FILLED????
+
 #split data into training and test
 last_train_year = 2009 #so means test_df starts from 2010
 column_name = ["client_enrollment_yr"]
@@ -248,6 +250,7 @@ df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
 
 
 ### ADD MODELS HERE
+
 
 ### OUTPUT EVALUATION TABLE
 
