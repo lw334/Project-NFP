@@ -110,11 +110,11 @@ def get_interval(df, startdate, enddate, labelinterval):
 
 def get_year(df, datelabel):
 	for date in datelabel:
-		df[date + 'yr'] = df[date].dt.year
+		df[date + '_yr'] = df[date].dt.year
 
 def get_month(df, datelabel):
 	for date in datelabel:
-		df[date + 'mth'] = df[date].dt.month
+		df[date + '_mth'] = df[date].dt.month
 
 def train_test_split(df,column_name,last_train_yr):
 	'''split function for main train and testing, according to last_train_yr'''
@@ -160,11 +160,13 @@ get_year(df, TIME)
 
 #split data into training and test
 last_train_year = 2009 #so means test_df starts from 2010
-train_df, test_df = train_test_split(df,last_train_year)
+column_name = ["client_enrollment_yr"]
+train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 #split train_df into the various train and testing splits for CV
 last_train_year = 2007
 last_test_year = 2008
+column_name = ["client_enrollment_yr"]
 cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
 #impute 
@@ -241,6 +243,7 @@ for col_name in NUMERICAL:
 
 df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
 df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
+
 #transform features
 
 
