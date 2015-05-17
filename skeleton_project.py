@@ -202,7 +202,8 @@ if __name__ == '__main__':
 	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"]
-	#######NEED TO FIX THE DATE FILLING FUNCTION TO TAKE FIRST APPOINTMENT DATE
+	if df["client_enrollment"].isnull().any():
+		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
 	df = df_in.dropna(subset = TIME)
 	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
 	change_time_var(df,TIME)
