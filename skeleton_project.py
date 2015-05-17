@@ -81,8 +81,8 @@ def run_missing_indicator(df, cols):
 
 def fill_nans(df, column_name, value):
 	'''fill NaNs with value'''
-	new_df = df
-	new_df.loc[new_df[column_name].isnull()] = new_df[new_df[column_name].isnull()].fillna(value)
+	new_df = df.copy()
+	new_df[column_name] = new_df[column_name].fillna(value)
 	return new_df 
 
 def fill_str(df, column_name, value):
