@@ -210,6 +210,9 @@ if __name__ == '__main__':
 	get_year(df, TIME)
 	df.drop(TIME, axis=1, inplace=True)
 
+	# calculate the baseline
+	baseline = str(1-df.describe()[y_col]["mean"])
+
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
@@ -312,10 +315,12 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-	print "CHECK missing df_train", missing(df_train)
-	print "CHECK missing df_test", missing(df_test)
+	number_train = missing(df_train)
+	number_test = missing(df_test)
+	print "CHECK missing df_train", number_train
+	print "CHECK missing df_test", number_test
 	
-	
+
 	df_train = pd.DataFrame.from_csv("train_1.csv")
 	df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
@@ -341,9 +346,10 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-	
+	baseline = str(1-df.describe()[y_col]["mean"])
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
+	# print "Baseline: "+baseline
 
 
 
