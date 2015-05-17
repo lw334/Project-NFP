@@ -67,7 +67,7 @@ def cat_var_to_binary(df, cols):
 
 def missing_indicator(df, column_name):
 	""" add a missing indicator for a feature to the dataframe, 1 if missing and 0 otherwise. """
-	nul = df[[column_name]].  isnull()
+	nul = df[[column_name]].isnull()
 	nul = nul.applymap(lambda x: 1 if x else 0)
 	name = column_name + "_missing"
 	df[name] = nul
@@ -154,6 +154,8 @@ plt.show()
 # filling in missing dates to "0001-01-01 00:00:00" and get years and months
 TIME = "client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 "EndDate","HireDate","NURSE_0_BIRTH_YEAR"]
+if df["client_enrollment"].isnull().any():
+	df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
 df = fill_str(df, TIME, "0000-00-00 00:00:00")
 change_time_var(df,TIME)
 get_year(df, TIME)
