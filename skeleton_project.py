@@ -166,10 +166,10 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["recall"] = str(recall_score(y, y_pred))
 	rv["f1"] = str(f1_score(y, y_pred))
 	fpr, tpr, _ = roc_curve(y, y_pred_prob)
-	plot_eval_curve(fpr, tpr, name, "roc")
+	# plot_eval_curve(fpr, tpr, name, "roc")
 	rv["auc_roc"] = str(auc(fpr, tpr))
 	precision_c, recall_c, _ = precision_recall_curve(y, y_pred_prob)
-	plot_eval_curve(recall_c, precision_c, name, "prc")
+	# plot_eval_curve(recall_c, precision_c, name, "prc")
 	rv["auc_prc"] = str(auc(recall_c, precision_c))
 	rv["train_time"] = str(train_time)
 	rv["test_time"] = str(test_time)
@@ -177,127 +177,9 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 
 if __name__ == '__main__':
 
-#upload data
-input_file = "project_data6.csv"
-df_in = readcsv_funct(input_file)
-#drop rows where premature values are missing
-df = df_in.dropna(subset = ['premature'])
-summary_stat= stats(df)
-#print "stats", summary_stat
-
-#saves distributions
-pd.value_counts(df.premature).plot(kind='bar')
-col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
-for col in col_names:
-	bar_chart(df,col)
-NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", "edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-"NURSE_0_YEAR_NURSING_EXPERIENCE"]
-first_graph = df[NUMERICAL]
-bin_no = 40
-first = dist(first_graph, bin_no, "dist_1.png")
-plt.savefig("dist_1.png")
-plt.show()
-
-# filling in missing dates to "0001-01-01 00:00:00" and get years and months
-TIME = "client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-"EndDate","HireDate","NURSE_0_BIRTH_YEAR"]
-if df["client_enrollment"].isnull().any():
-	df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
-df = fill_str(df, TIME, "0000-00-00 00:00:00")
-change_time_var(df,TIME)
-get_year(df, TIME)
-
-#split data into training and test
-last_train_year = 2009 #so means test_df starts from 2010
-train_df, test_df = train_test_split(df,last_train_year)
-
-#split train_df into the various train and testing splits for CV
-last_train_year = 2007
-last_test_year = 2008
-cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
-
-#impute 
-#make dummy indicators for columns with large numbers of missing values
-missing_cols = ["CLIENT_ABUSE_AFRAID_0_PARTNER", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
-"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_HIT_0_SLAP_PARTNER",
-"CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO","CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
-"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I","CLIENT_ABUSE_TIMES_0_HURT_LAST_Y",
-"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
-"CLIENT_WORKING_0_CURRENTLY_WORKI", "English", "INCOME", "PREPGBMI",
-"Spanish", "highest_educ","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-"NURSE_0_YEAR_NURSING_EXPERIENCE"]
-df_mind_train = run_missing_indicator(cv_train,missing_cols)
-df_mind_test = run_missing_indicator(cv_test,missing_cols)
-
-NANCOLS_CAT_BINARY = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
-"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
-"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
-"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I", "CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO",
-"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
-"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
-"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE","PrimRole","SecRole","CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
-"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", 
-"CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
-"English", "Spanish", "disease","heart_disease","high_blood_pressure","diabetes","kidney_disease",
-"epilepsy","sickle_cell_disease","chronic_gastrointestinal_disease",
-"asthma_chronic_pulmonary","chronic_urinary_tract_infection",
-"chronic_vaginal_infection_sti","genetic_disease_congenital_anomalies",
-"mental_health","other_diseases","nurse_English","nurse_hispanic",
-"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
-"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
-
-NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
-"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-"NURSE_0_YEAR_NURSING_EXPERIENCE"]
-
-CATEGORICAL = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
-"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
-"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
-"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I", "CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO",
-"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
-"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
-"SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
-"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
-"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
-"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
-"SERVICE_USE_0_IPV_CLIENT","SERVICE_USE_0_CPS_CHILD",
-"SERVICE_USE_0_MENTAL_CLIENT","SERVICE_USE_0_SMOKE_CLIENT",
-"SERVICE_USE_0_ALCOHOL_ABUSE_CLIE","SERVICE_USE_0_DRUG_ABUSE_CLIENT",
-"SERVICE_USE_0_MEDICAID_CLIENT","SERVICE_USE_0_MEDICAID_CHILD",
-"SERVICE_USE_0_SCHIP_CLIENT","SERVICE_USE_0_SCHIP_CHILD",
-"SERVICE_USE_0_SPECIAL_NEEDS_CHIL","SERVICE_USE_0_PCP_CLIENT","SERVICE_USE_0_PCP_WELL_CHILD",
-"SERVICE_USE_0_DEVELOPMENTAL_DISA","SERVICE_USE_0_WIC_CLIENT","SERVICE_USE_0_CHILD_CARE_CLIENT",
-"SERVICE_USE_0_JOB_TRAINING_CLIEN","SERVICE_USE_0_HOUSING_CLIENT",
-"SERVICE_USE_0_TRANSPORTATION_CLI","SERVICE_USE_0_PREVENT_INJURY_CLI",
-"SERVICE_USE_0_BIRTH_EDUC_CLASS_C","SERVICE_USE_0_LACTATION_CLIENT",
-"SERVICE_USE_0_GED_CLIENT","SERVICE_USE_0_HIGHER_EDUC_CLIENT",
-"SERVICE_USE_0_CHARITY_CLIENT","SERVICE_USE_0_LEGAL_CLIENT","SERVICE_USE_0_OTHER1",
-"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
-"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1",
-"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
-"PrimRole","SecRole"]
-
-#NEED DATE COLUMNS OR OTHER RANDOM ONES 
-#fill_nans(
-
-for col_name in NANCOLS_CAT_BINARY:
-	df_mind_train= fill_mode(df_mind_train,col_name)
-	df_mind_test= fill_mode(df_mind_test,col_name)
-
-for col_name in NUMERICAL:
-	df_mind_train = fill_median(df_mind_train,col_name)
-	df_mind_test = fill_median(df_mind_test, col_name)
-
-df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
-df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
-#transform features
-
-
-### ADD MODELS HERE
-
 ### OUTPUT EVALUATION TABLE
 	#upload data
-	input_file = "project_data7.csv"
+	input_file = "../project_data9.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -315,24 +197,27 @@ df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
 	bin_no = 40
 	first = dist(first_graph, bin_no, "dist_1.png")
 	plt.savefig("dist_1.png")
-	plt.show()
+	#plt.show()
 
 	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate","NURSE_0_BIRTH_YEAR"]
-	df = fill_str(df, TIME, "0000-00-00 00:00:00")
+	"EndDate","HireDate"]
+	#######NEED TO FIX THE DATE FILLING FUNCTION TO TAKE FIRST APPOINTMENT DATE
+	df = df_in.dropna(subset = TIME)
+	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
 	change_time_var(df,TIME)
 	get_year(df, TIME)
+	df.drop(TIME, axis=1, inplace=True)
 
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
-	column_name = ["client_enrollment_yr"]
+	column_name = "client_enrollment_yr"
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
 	last_train_year = 2007
 	last_test_year = 2008
-	column_name = ["client_enrollment_yr"]
+	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
 	#impute 
@@ -396,9 +281,19 @@ df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
 	"PrimRole","SecRole"]
 
+	BOOLEAN = ["nicu", "premature", "lbw",  "SERVICE_USE_0_PRIVATE_INSURANCE1", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
+	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
+	"live_with_mother", "live_with_FoC_not_spouse", "live_with_spouse_not_FoC",
+	"live_with_other_family_members", "live_with_infant_or_child","live_with_other_adults", "income_employment",
+	"income_socialsecurity", "income_disability","income_other_public_benefits", "income_other", 
+	"English", "Spanish","disease","heart_disease","high_blood_pressure","diabetes",
+	"kidney_disease","epilepsy","sickle_cell_disease","chronic_gastrointestinal_disease","asthma_chronic_pulmonary",
+	"chronic_urinary_tract_infection","chronic_vaginal_infection_sti","genetic_disease_congenital_anomalies",
+	"mental_health","other_diseases","nurse_English","nurse_hispanic",
+	"nurse_Spanish","nurserace_americanindian_alaskanative",
+	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white"]
 	#NEED DATE COLUMNS OR OTHER RANDOM ONES 
 	#fill_nans
-
 	for col_name in NANCOLS_CAT_BINARY:
 		df_mind_train= fill_mode(df_mind_train,col_name)
 		df_mind_test= fill_mode(df_mind_test,col_name)
@@ -407,19 +302,24 @@ df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
 		df_mind_train = fill_median(df_mind_train,col_name)
 		df_mind_test = fill_median(df_mind_test, col_name)
 
+	# Transforming features 
 	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
 	df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
 
-	#transform features
+	df_train = binary_transform(df_train, BOOLEAN)
+	df_test = binary_transform(df_test, BOOLEAN)
+
+	print "CHECK missing df_train", missing(df_train)
+	print "CHECK missing df_test", missing(df_test)
 
 	# Models
 	# Set dependent and independent variables
 	y_col = 'premature'
-	x_cols = df_train.columns[3:]
+	x_cols = df_train.columns[3:10]
 
 	# Build classifier and yield predictions
 	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
-	classifiers = [LR, RFC, DTC, BC, GBC]
+	classifiers = [LR]#[LR, RFC, DTC, BC, GBC]
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","auc_prc","train_time","test_time"])
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
