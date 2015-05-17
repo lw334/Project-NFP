@@ -4,13 +4,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from sklearn.svm import LinearSVC as LSVC
-from sklearn.ensemble import RandomForestClassifier as RFC
-from sklearn.neighbors import KNeighborsClassifier as KNC
-from sklearn.tree import DecisionTreeClassifier as DTC
-from sklearn.linear_model import LogisticRegression as LR
-from sklearn.ensemble import BaggingClassifier as BC
-from sklearn.ensemble import GradientBoostingClassifier as GBC
+
 
 def readcsv_funct(input_csv):
 	''' Takes input_csv file name as a string and returns DataFrame
@@ -88,7 +82,7 @@ def run_missing_indicator(df, cols):
 def fill_nans(df, column_name, value):
 	'''fill NaNs with value'''
 	new_df = df
-	new_df[new_df[column_name].isnull()] = new_df[new_df[column_name].isnull()].fillna(value)
+	new_df.loc[new_df[column_name].isnull()] = new_df[new_df[column_name].isnull()].fillna(value)
 	return new_df 
 
 def fill_str(df, column_name, value):
@@ -137,6 +131,14 @@ def cv_split(df,column_name,last_train_yr, last_test_yr):
 
 def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	'''train and test the model'''
+	from sklearn.preprocessing import StandardScaler
+	from sklearn.svm import LinearSVC as LSVC
+	from sklearn.ensemble import RandomForestClassifier as RFC
+	from sklearn.neighbors import KNeighborsClassifier as KNC
+	from sklearn.tree import DecisionTreeClassifier as DTC
+	from sklearn.linear_model import LogisticRegression as LR
+	from sklearn.ensemble import BaggingClassifier as BC
+	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix())
 	X_test = np.array(test_df[x_cols].as_matrix())
@@ -201,7 +203,7 @@ if __name__ == '__main__':
 
 	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"]
+	"EndDate","HireDate"] #"NURSE_0_BIRTH_YEAR"
 	#######NEED TO FIX THE DATE FILLING FUNCTION TO TAKE FIRST APPOINTMENT DATE
 	df = df_in.dropna(subset = TIME)
 	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
@@ -229,7 +231,9 @@ if __name__ == '__main__':
 	"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
 	"CLIENT_WORKING_0_CURRENTLY_WORKI", "English", "INCOME", "PREPGBMI",
 	"Spanish", "highest_educ","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-	"NURSE_0_YEAR_NURSING_EXPERIENCE"]
+	"NURSE_0_YEAR_NURSING_EXPERIENCE","nurse_English","nurse_hispanic",
+	"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
+	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
 	df_mind_train = run_missing_indicator(cv_train,missing_cols)
 	df_mind_test = run_missing_indicator(cv_test,missing_cols)
 
@@ -281,7 +285,7 @@ if __name__ == '__main__':
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
 	"PrimRole","SecRole"]
 
-	BOOLEAN = ["nicu", "premature", "lbw",  "SERVICE_USE_0_PRIVATE_INSURANCE1", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
+	BOOLEAN = ["nicu", "premature", "lbw", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
 	"live_with_mother", "live_with_FoC_not_spouse", "live_with_spouse_not_FoC",
 	"live_with_other_family_members", "live_with_infant_or_child","live_with_other_adults", "income_employment",
@@ -328,6 +332,7 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
+	
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 
