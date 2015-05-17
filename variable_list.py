@@ -84,8 +84,7 @@ BOOLEAN = ["nicu", "premature", "lbw",
 "nurserace_asian",
 "nurserace_black",
 "nurserace_nativehawaiian_pacificislander",
-"nurserace_white",
-"other_diseases"]
+"nurserace_white"]
 
 NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
 "edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
@@ -140,6 +139,5 @@ NANCOLS_BIN = ["nicu", "premature", "lbw",
 "nurserace_asian",
 "nurserace_black",
 "nurserace_nativehawaiian_pacificislander",
-"nurserace_white",
-"other_diseases"]
+"nurserace_white"]
 
