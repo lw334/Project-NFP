@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
+import re
 
 def readcsv_funct(input_csv):
 	''' Takes input_csv file name as a string and returns DataFrame
@@ -132,13 +132,7 @@ def cv_split(df,column_name,last_train_yr, last_test_yr):
 def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
-	from sklearn.svm import LinearSVC as LSVC
-	from sklearn.ensemble import RandomForestClassifier as RFC
-	from sklearn.neighbors import KNeighborsClassifier as KNC
-	from sklearn.tree import DecisionTreeClassifier as DTC
-	from sklearn.linear_model import LogisticRegression as LR
-	from sklearn.ensemble import BaggingClassifier as BC
-	from sklearn.ensemble import GradientBoostingClassifier as GBC
+	from time import time
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix())
 	X_test = np.array(test_df[x_cols].as_matrix())
@@ -161,18 +155,21 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	return y_pred, y_pred_proba, y_test, train_time, test_time
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
+	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION 
 	'''generate evaluation results'''
+	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
 	rv = {}
 	rv["accuracy"] = str(np.mean(y == y_pred))
 	rv["precision"] = str(precision_score(y, y_pred))
 	rv["recall"] = str(recall_score(y, y_pred))
 	rv["f1"] = str(f1_score(y, y_pred))
-	fpr, tpr, _ = roc_curve(y, y_pred_prob)
+	rv["auc"] = str(roc_auc_score(y, y_pred))
+	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
-	rv["auc_roc"] = str(auc(fpr, tpr))
-	precision_c, recall_c, _ = precision_recall_curve(y, y_pred_prob)
+	#rv["auc_roc"] = str(auc(fpr, tpr))
+	#precision_c, recall_c, _ = precision_recall_curve(y, y_pred_prob)
 	# plot_eval_curve(recall_c, precision_c, name, "prc")
-	rv["auc_prc"] = str(auc(recall_c, precision_c))
+	#rv["auc_prc"] = str(auc(recall_c, precision_c))
 	rv["train_time"] = str(train_time)
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred)
@@ -180,6 +177,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 if __name__ == '__main__':
 
 ### OUTPUT EVALUATION TABLE
+	'''
 	#upload data
 	input_file = "../project_data9.csv"
 	df_in = readcsv_funct(input_file)
@@ -317,13 +315,23 @@ if __name__ == '__main__':
 
 	print "CHECK missing df_train", missing(df_train)
 	print "CHECK missing df_test", missing(df_test)
-
+	
+	'''
+	df_train = pd.DataFrame.from_csv("train_1.csv")
+	df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
 	# Set dependent and independent variables
 	y_col = 'premature'
 	x_cols = df_train.columns[3:10]
 
 	# Build classifier and yield predictions
+	from sklearn.svm import LinearSVC as LSVC
+	from sklearn.ensemble import RandomForestClassifier as RFC
+	from sklearn.neighbors import KNeighborsClassifier as KNC
+	from sklearn.tree import DecisionTreeClassifier as DTC
+	from sklearn.linear_model import LogisticRegression as LR
+	from sklearn.ensemble import BaggingClassifier as BC
+	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
 	classifiers = [LR]#[LR, RFC, DTC, BC, GBC]
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","auc_prc","train_time","test_time"])
