@@ -14,8 +14,7 @@ def readcsv_funct(input_csv):
 
 def missing(dataframe):
 	'''Finds number of missing entries for columns in df'''
-	count_nan = len(df) - df.count()
-	missing_data = count_nan
+	missing_data = dataframe.isnull().sum()
 	return missing_data
 
 def stats(dataframe):
@@ -200,14 +199,17 @@ if __name__ == '__main__':
 
 	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"] #"NURSE_0_BIRTH_YEAR"
-	#######NEED TO FIX THE DATE FILLING FUNCTION TO TAKE FIRST APPOINTMENT DATE
+	"HireDate"] 
+	#"EndDate" #NEED TO MAKE EndDate ONLY IF BEFORE client_edd
+	#NEED TO FIX THIS NURSE BIRTH YEAR "NURSE_0_BIRTH_YEAR"
+	MONTH = ["client_edd"]
 	if df["client_enrollment"].isnull().any():
 		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
 	df = df_in.dropna(subset = TIME)
 	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
 	change_time_var(df,TIME)
 	get_year(df, TIME)
+	get_month(df,MONTH)
 	df.drop(TIME, axis=1, inplace=True)
 
 	#split data into training and test
@@ -312,16 +314,20 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-	number_train = missing(df_train)
-	number_test = missing(df_test)
-	print "CHECK missing df_train", number_train
-	print "CHECK missing df_test", number_test
+	number_train = (missing(df_train)>0).sum()
+	number_test = (missing(df_test)>0).sum()
+	print "NUMBER OF COLS with missing values in df_train", number_train
+	print "NUMBER OF COLS with missing values in df_test", number_test
 	
 
 	df_train = pd.DataFrame.from_csv("train_1.csv")
 	df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
 	# Set dependent and independent variables
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+	for col in cols_to_drop:
+		df_train.drop(col, axis=1, inplace=True)
+		df_test.drop(col, axis=1, inplace=True) 
 	y_col = 'premature'
 	x_cols = df_train.columns[3:10]
 
