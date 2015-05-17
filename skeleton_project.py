@@ -177,7 +177,6 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 if __name__ == '__main__':
 
 ### OUTPUT EVALUATION TABLE
-	'''
 	#upload data
 	input_file = "../project_data9.csv"
 	df_in = readcsv_funct(input_file)
@@ -210,6 +209,9 @@ if __name__ == '__main__':
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	df.drop(TIME, axis=1, inplace=True)
+
+	# calculate the baseline
+	baseline = str(1-df.describe()[y_col]["mean"])
 
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
@@ -316,7 +318,6 @@ if __name__ == '__main__':
 	print "CHECK missing df_train", missing(df_train)
 	print "CHECK missing df_test", missing(df_test)
 	
-	'''
 	df_train = pd.DataFrame.from_csv("train_1.csv")
 	df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
@@ -342,9 +343,10 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-	
+	baseline = str(1-df.describe()[y_col]["mean"])
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
+	# print "Baseline: "+baseline
 
 
 
