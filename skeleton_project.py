@@ -84,6 +84,11 @@ def fill_nans(df, column_name, value):
 	new_df[new_df[column_name].isnull()] = new_df[new_df[column_name].isnull()].fillna(value)
 	return new_df 
 
+def fill_str(df, column_name, value):
+	''' filling in arbitrary value '''
+	df = df[column_name].fillna(value)
+	return df
+
 def fill_mode(df, column_name):
 	'''fills NaNs with mode of the column for categorical and true/false'''
 	new_df = fill_nans(df, column_name,df[column_name].mode())
@@ -104,10 +109,12 @@ def get_interval(df, startdate, enddate, labelinterval):
 	df[labelinterval] = df[labelinterval].dt.days
 
 def get_year(df, datelabel):
-	df[datelabel + 'yr'] = df[datelabel].dt.year
+	for date in datelabel:
+		df[date + 'yr'] = df[date].dt.year
 
 def get_month(df, datelabel):
-	df[datelabel + 'yr'] = df[datelabel].dt.month
+	for date in datelabel:
+		df[date + 'yr'] = df[date].dt.month
 
 def train_test_split(df,column_name,last_train_yr):
 	'''split function for main train and testing, according to last_train_yr'''
@@ -136,17 +143,20 @@ pd.value_counts(df.premature).plot(kind='bar')
 col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
 for col in col_names:
 	bar_chart(df,col)
-NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", "edd_enrollment_interval_weeks", "gest_weeks_intake"]
+NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", "edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
+"NURSE_0_YEAR_NURSING_EXPERIENCE"]
 first_graph = df[NUMERICAL]
 bin_no = 40
 first = dist(first_graph, bin_no, "dist_1.png")
 plt.savefig("dist_1.png")
 plt.show()
 
-############LINGWEI'S FUNCTION
-
-
-
+# filling in missing dates to "0001-01-01 00:00:00" and get years and months
+TIME = "client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+"EndDate","HireDate","NURSE_0_BIRTH_YEAR"]
+df = fill_str(df, TIME, "0000-00-00 00:00:00")
+change_time_var(df,TIME)
+get_year(df, TIME)
 
 #split data into training and test
 last_train_year = 2009 #so means test_df starts from 2010
@@ -165,7 +175,8 @@ missing_cols = ["CLIENT_ABUSE_AFRAID_0_PARTNER", "CLIENT_ABUSE_EMOTION_0_PHYSICA
 "CLIENT_ABUSE_TIMES_0_HEAD_PERM_I","CLIENT_ABUSE_TIMES_0_HURT_LAST_Y",
 "CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
 "CLIENT_WORKING_0_CURRENTLY_WORKI", "English", "INCOME", "PREPGBMI",
-"Spanish", "highest_educ"]
+"Spanish", "highest_educ","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
+"NURSE_0_YEAR_NURSING_EXPERIENCE"]
 df_mind_train = run_missing_indicator(cv_train,missing_cols)
 df_mind_test = run_missing_indicator(cv_test,missing_cols)
 
@@ -187,7 +198,8 @@ NANCOLS_CAT_BINARY = ["MomsRE", "HSGED", "INCOME", "MARITAL",
 "nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
 
 NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
-"edd_enrollment_interval_weeks", "gest_weeks_intake"]
+"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
+"NURSE_0_YEAR_NURSING_EXPERIENCE"]
 
 CATEGORICAL = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 "CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
