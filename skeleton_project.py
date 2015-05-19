@@ -85,9 +85,10 @@ def fill_nans(df, column_name, value):
 	new_df[column_name] = new_df[column_name].fillna(value)
 	return new_df 
 
-def fill_str(df, column_name, value):
+def fill_str(df, colist, value):
 	''' filling in arbitrary value '''
-	df = df[column_name].fillna(value)
+	for col in colist:
+		df[col] = df[col].fillna(value)
 	return df
 
 def fill_mode(df, column_name):
@@ -102,12 +103,15 @@ def fill_median(df, column_name):
 
 def change_time_var(df, datelabel):
 	'''fill in na before conversion'''
-	df[datelabel] = df[datelabel].astype('datetime64[ns]')
+	for label in datelabel:
+		df[label] = df[label].astype('datetime64[ns]')
+	return df
 
 def get_interval(df, startdate, enddate, labelinterval):
 	'''convert into datetime objects before using the function'''
 	df[labelinterval] = df[enddate] - df[startdate]
-	df[labelinterval] = df[labelinterval].dt.days
+	df[labelinterval].astype('int64')
+	df[labelinterval].apply(lambda x: 1 if x < 0 else 0)
 
 def get_year(df, datelabel):
 	for date in datelabel:
@@ -200,15 +204,16 @@ if __name__ == '__main__':
 
 	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"] #"NURSE_0_BIRTH_YEAR"
-	#######NEED TO FIX THE DATE FILLING FUNCTION TO TAKE FIRST APPOINTMENT DATE
-	if df["client_enrollment"].isnull().any():
-		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
-	df = df_in.dropna(subset = TIME)
-	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
+	"EndDate","HireDate"] 
+	#"NURSE_0_BIRTH_YEAR"
+	df = fill_str(df, TIME, "0001-01-01 00:00:00")
 	change_time_var(df,TIME)
 	get_year(df, TIME)
-	df.drop(TIME, axis=1, inplace=True)
+	#generated
+	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
+	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
+	GENERATED = ["leftbeforebirth", "enrollment_duration"]
+	
 
 	# calculate the baseline
 	baseline = str(1-df.describe()[y_col]["mean"])
