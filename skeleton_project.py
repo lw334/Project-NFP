@@ -14,8 +14,7 @@ def readcsv_funct(input_csv):
 
 def missing(dataframe):
 	'''Finds number of missing entries for columns in df'''
-	count_nan = len(df) - df.count()
-	missing_data = count_nan
+	missing_data = dataframe.isnull().sum()
 	return missing_data
 
 def stats(dataframe):
@@ -133,6 +132,55 @@ def cv_split(df,column_name,last_train_yr, last_test_yr):
 	test_df = df.loc[(df[column_name] > last_train_yr) & (df[column_name] <= last_test_yr)]
 	return train_df, test_df
 
+def sequential_cv(df, total_pct, num_moves, train_pct, x_cols, y_col, clf_class, **kwargs):
+	index = 0
+	df_len = len(df)
+	train_size = np.round((df_len*total_pct)*train_pct)
+	test_size = np.round(df_len*total_pct) - train_size
+	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
+	step_size = train_size+test_size-overlap
+	for i in range(num_moves):
+		if i != num_moves-1:
+			train_df = df[index:index+train_size]
+			test_df = df[index+train_size:index+train_size+test_size]
+		else:
+			train_df = df[index:]
+			test_df = df[index+train_size:]
+		index += step_size
+		X_train = np.array(train_df[x_cols].as_matrix())
+		X_test = np.array(test_df[x_cols].as_matrix())
+		y_train = np.ravel(train_df[y_col])
+		y_test = np.ravel(test_df[y_col])
+		# train and test
+		clf = clf_class(**kwargs)
+		begin_train = time()
+		clf.fit(X_train, y_train)
+		end_train = time()
+		begin_test = time()
+		y_pred = clf.predict(X_test)
+		end_test = time()
+		y_pred_prob = clf.predict_proba(X_test)
+		train_time = end_train - begin_train
+		test_time = end_test - begin_test
+
+def test(df, total_pct, num_moves, train_pct):
+	index = 0
+	df_len = len(df)
+	train_size = np.round((df_len*total_pct)*train_pct)
+	test_size = np.round(df_len*total_pct) - train_size
+	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
+	step_size = train_size+test_size-overlap
+	for i in range(num_moves):
+		if i != num_moves-1:
+			train_df = df[index:index+train_size]
+			test_df = df[index+train_size:index+train_size+test_size]
+		else:
+			train_df = df[index:]
+			test_df = df[index+train_size:]
+		index += step_size
+		print train_df, test_df
+
+
 def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
@@ -140,9 +188,9 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix())
 	X_test = np.array(test_df[x_cols].as_matrix())
-	scaler = StandardScaler()
-	X_train = scaler.fit_transform(X_train)
-	X_test = scaler.fit_transform(X_test)
+	# scaler = StandardScaler()
+	# X_train = scaler.fit_transform(X_train)
+	# X_test = scaler.fit_transform(X_test)
 	y_train = np.ravel(train_df[y_col])
 	y_test = np.ravel(test_df[y_col])
 	# train and test
@@ -154,12 +202,12 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	y_pred = clf.predict(X_test)
 	end_test = time()
 	y_pred_proba = clf.predict_proba(X_test)
-	train_time = begin_train - end_train
-	test_time = begin_test - end_test
+	train_time = end_train - begin_train
+	test_time = end_test - begin_test
 	return y_pred, y_pred_proba, y_test, train_time, test_time
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
-	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION 
+	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
 	'''generate evaluation results'''
 	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
 	rv = {}
@@ -167,7 +215,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["precision"] = str(precision_score(y, y_pred))
 	rv["recall"] = str(recall_score(y, y_pred))
 	rv["f1"] = str(f1_score(y, y_pred))
-	rv["auc"] = str(roc_auc_score(y, y_pred))
+	rv["auc_roc"] = str(roc_auc_score(y, y_pred))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
 	#rv["auc_roc"] = str(auc(fpr, tpr))
@@ -182,7 +230,7 @@ if __name__ == '__main__':
 
 ### OUTPUT EVALUATION TABLE
 	#upload data
-	input_file = "../project_data9.csv"
+	input_file = "project_data9.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -213,10 +261,18 @@ if __name__ == '__main__':
 	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
 	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
 	GENERATED = ["leftbeforebirth", "enrollment_duration"]
-	
 
-	# calculate the baseline
-	baseline = str(1-df.describe()[y_col]["mean"])
+	#"EndDate" #NEED TO MAKE EndDate ONLY IF BEFORE client_edd
+	#NEED TO FIX THIS NURSE BIRTH YEAR "NURSE_0_BIRTH_YEAR"
+	MONTH = ["client_edd"]
+	if df["client_enrollment"].isnull().any():
+		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
+	df = df_in.dropna(subset = TIME)
+	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
+	change_time_var(df,TIME)
+	get_year(df, TIME)
+	get_month(df,MONTH)
+	df.drop(TIME, axis=1, inplace=True)
 
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
@@ -320,15 +376,22 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-	print "CHECK missing df_train", missing(df_train)
-	print "CHECK missing df_test", missing(df_test)
+	number_train = (missing(df_train)>0).sum()
+	number_test = (missing(df_test)>0).sum()
+	print "NUMBER OF COLS with missing values in df_train", number_train
+	print "NUMBER OF COLS with missing values in df_test", number_test
 	
-	df_train = pd.DataFrame.from_csv("train_1.csv")
-	df_test = pd.DataFrame.from_csv("test_1.csv")
+
+	# df_train = pd.DataFrame.from_csv("train_1.csv")
+	# df_test = pd.DataFrame.from_csv("test_1.csv")
 	# Models
 	# Set dependent and independent variables
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+	for col in cols_to_drop:
+		df_train.drop(col, axis=1, inplace=True)
+		df_test.drop(col, axis=1, inplace=True) 
 	y_col = 'premature'
-	x_cols = df_train.columns[3:10]
+	x_cols = df_train.columns[3:100]
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
@@ -338,9 +401,17 @@ if __name__ == '__main__':
 	from sklearn.linear_model import LogisticRegression as LR
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
-	# classifiers = [LR, KNC, LSVC, RFC, DTC, BC, GBC]
-	classifiers = [LR]#[LR, RFC, DTC, BC, GBC]
-	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","auc_prc","train_time","test_time"])
+	
+	logit = LR(fit_intercept=False)
+	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	svm = LSVC(C=1.0, kernel='linear')#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
+	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
+	decisiontree = DTC(criterion='gini')#can also be 'entropy'
+	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
+	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
+
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
 		y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
@@ -348,7 +419,9 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-	baseline = str(1-df.describe()[y_col]["mean"])
+	baseline = str(1-df_test.describe()[y_col]["mean"])
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	# print "Baseline: "+baseline
