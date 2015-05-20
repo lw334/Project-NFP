@@ -229,22 +229,12 @@ if __name__ == '__main__':
 	df = fill_str(df, TIME, "0001-01-01 00:00:00")
 	change_time_var(df,TIME)
 	get_year(df, TIME)
+	get_month(df, TIME)
 	#generated
 	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
 	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
 	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
 	GENERATED = ["leftbeforebirth", "enrollment_duration", "age"]
-
-	#"EndDate" #NEED TO MAKE EndDate ONLY IF BEFORE client_edd
-	#NEED TO FIX THIS NURSE BIRTH YEAR "NURSE_0_BIRTH_YEAR"
-	MONTH = ["client_edd"]
-	if df["client_enrollment"].isnull().any():
-		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
-	df = df_in.dropna(subset = TIME)
-	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
-	change_time_var(df,TIME)
-	get_year(df, TIME)
-	get_month(df,MONTH)
 	df.drop(TIME, axis=1, inplace=True)
 
 
