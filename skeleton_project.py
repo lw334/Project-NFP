@@ -235,7 +235,7 @@ if __name__ == '__main__':
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"] 
 	#"NURSE_0_BIRTH_YEAR"
-	df = fill_str(df, TIME, "0001-01-01 00:00:00")
+	#df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973")
 	#fill in the mode
 	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
 	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
