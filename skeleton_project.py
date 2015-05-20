@@ -128,56 +128,29 @@ def cv_split(df,column_name,last_train_yr, last_test_yr):
 	test_df = df.loc[(df[column_name] > last_train_yr) & (df[column_name] <= last_test_yr)]
 	return train_df, test_df
 
-def sequential_cv(df, total_pct, num_moves, train_pct, x_cols, y_col, clf_class, **kwargs):
+def sequential_cv_index(df_len, num_moves, total_pct, train_pct):
+	'''return train-test split indexes for (num_moves) folds, overlapping allowed'''
 	index = 0
-	df_len = len(df)
-	train_size = np.round((df_len*total_pct)*train_pct)
-	test_size = np.round(df_len*total_pct) - train_size
-	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
+	rv = []
+	temp = range(df_len)
+	train_size = int(np.round((df_len*total_pct)*train_pct))
+	test_size = int(np.round(df_len*total_pct)-train_size)
+	overlap = int(np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1)))
 	step_size = train_size+test_size-overlap
+	if(step_size<test_size):
+		print "Warning: test on a single individual for multiple times!"
 	for i in range(num_moves):
 		if i != num_moves-1:
-			train_df = df[index:index+train_size]
-			test_df = df[index+train_size:index+train_size+test_size]
+			train_index = temp[index:index+train_size]
+			test_index = temp[index+train_size:index+train_size+test_size]
 		else:
-			train_df = df[index:]
-			test_df = df[index+train_size:]
+			train_index = temp[-(train_size+test_size):-test_size]
+			test_index = temp[-test_size:]
 		index += step_size
-		X_train = np.array(train_df[x_cols].as_matrix())
-		X_test = np.array(test_df[x_cols].as_matrix())
-		y_train = np.ravel(train_df[y_col])
-		y_test = np.ravel(test_df[y_col])
-		# train and test
-		clf = clf_class(**kwargs)
-		begin_train = time()
-		clf.fit(X_train, y_train)
-		end_train = time()
-		begin_test = time()
-		y_pred = clf.predict(X_test)
-		end_test = time()
-		y_pred_prob = clf.predict_proba(X_test)
-		train_time = end_train - begin_train
-		test_time = end_test - begin_test
+		rv.append((train_index, test_index))
+	return rv
 
-def test(df, total_pct, num_moves, train_pct):
-	index = 0
-	df_len = len(df)
-	train_size = np.round((df_len*total_pct)*train_pct)
-	test_size = np.round(df_len*total_pct) - train_size
-	overlap = np.round((num_moves*(train_size+test_size)-df_len)/(num_moves-1))
-	step_size = train_size+test_size-overlap
-	for i in range(num_moves):
-		if i != num_moves-1:
-			train_df = df[index:index+train_size]
-			test_df = df[index+train_size:index+train_size+test_size]
-		else:
-			train_df = df[index:]
-			test_df = df[index+train_size:]
-		index += step_size
-		print train_df, test_df
-
-
-def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
+def run_cv(train_df, test_df, x_cols, y_col, clf):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
@@ -190,7 +163,6 @@ def run_cv(train_df, test_df, x_cols, y_col, clf_class, **kwargs):
 	y_train = np.ravel(train_df[y_col])
 	y_test = np.ravel(test_df[y_col])
 	# train and test
-	clf = clf_class(**kwargs)
 	begin_train = time()
 	clf.fit(X_train, y_train)
 	end_train = time()
@@ -222,9 +194,9 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred)
 
+
 if __name__ == '__main__':
 
-### OUTPUT EVALUATION TABLE
 	#upload data
 	input_file = "project_data9.csv"
 	df_in = readcsv_funct(input_file)
@@ -261,6 +233,8 @@ if __name__ == '__main__':
 	get_month(df,MONTH)
 	df.drop(TIME, axis=1, inplace=True)
 
+
+	################################ if split by year #################################################
 	#split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
@@ -354,7 +328,7 @@ if __name__ == '__main__':
 
 	for col_name in NUMERICAL:
 		df_mind_train = fill_median(df_mind_train,col_name)
-		df_mind_test = fill_median(df_mind_test, col_name)
+		df_mind_test = fill_median(df_mind_test,col_name)
 
 	# Transforming features 
 	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
@@ -367,10 +341,10 @@ if __name__ == '__main__':
 	number_test = (missing(df_test)>0).sum()
 	print "NUMBER OF COLS with missing values in df_train", number_train
 	print "NUMBER OF COLS with missing values in df_test", number_test
-	
 
 	# df_train = pd.DataFrame.from_csv("train_1.csv")
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
+
 	# Models
 	# Set dependent and independent variables
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
@@ -391,12 +365,13 @@ if __name__ == '__main__':
 	
 	logit = LR(fit_intercept=False)
 	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
-	svm = LSVC(C=1.0, kernel='linear')#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
+	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
 	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
 	decisiontree = DTC(criterion='gini')#can also be 'entropy'
 	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
 	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
-	classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
+	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
+	classifiers = [logit]
 
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
@@ -411,7 +386,84 @@ if __name__ == '__main__':
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
-	# print "Baseline: "+baseline
 
+	'''
+	################################ if split the sorted dataframe evenly ##################################
+	# Build classifier and yield predictions
+	from sklearn.svm import LinearSVC as LSVC
+	from sklearn.ensemble import RandomForestClassifier as RFC
+	from sklearn.neighbors import KNeighborsClassifier as KNC
+	from sklearn.tree import DecisionTreeClassifier as DTC
+	from sklearn.linear_model import LogisticRegression as LR
+	from sklearn.ensemble import BaggingClassifier as BC
+	from sklearn.ensemble import GradientBoostingClassifier as GBC
+	
+	logit = LR(fit_intercept=False)
+	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	svm = LSVC(C=1.0, kernel='linear')#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
+	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
+	decisiontree = DTC(criterion='gini')#can also be 'entropy'
+	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
+	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
 
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
+	evaluation_result = pd.DataFrame(columns=metrics)
 
+	# Sequential cross-validation
+	split_index = sequential_cv_index(len(df), 5, 0.4, 0.8)
+	
+	for classifier in classifiers:
+		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+		id_num = 1
+		for train_index, test_index in split_index:
+			cv_train = df.iloc[train_index]
+			cv_test = df.iloc[test_index]
+
+			#impute 
+			#make dummy indicators for columns with large numbers of missing values
+			df_mind_train = run_missing_indicator(cv_train,missing_cols)
+			df_mind_test = run_missing_indicator(cv_test,missing_cols)
+
+			#fill_nans
+			for col_name in NANCOLS_CAT_BINARY:
+				df_mind_train= fill_mode(df_mind_train,col_name)
+				df_mind_test= fill_mode(df_mind_test,col_name)
+
+			for col_name in NUMERICAL:
+				df_mind_train = fill_median(df_mind_train,col_name)
+				df_mind_test = fill_median(df_mind_test, col_name)
+
+			# Transforming features 
+			df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
+			df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
+
+			df_train = binary_transform(df_train, BOOLEAN)
+			df_test = binary_transform(df_test, BOOLEAN)
+
+			number_train = (missing(df_train)>0).sum()
+			number_test = (missing(df_test)>0).sum()
+			print "NUMBER OF COLS with missing values in df_train", number_train
+			print "NUMBER OF COLS with missing values in df_test", number_test
+	
+			# Model
+			# Set dependent and independent variables / feature selection
+			cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+			for col in cols_to_drop:
+				df_train.drop(col, axis=1, inplace=True)
+				df_test.drop(col, axis=1, inplace=True) 
+			y_col = 'premature'
+			x_cols = df_train.columns[3:100]
+
+			y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
+			dic, conf_matrix = evaluate(name+str(id_num), y_true, y_pred, y_pred_prob, train_time, test_time)
+			# print name
+			# print conf_matrix
+			evaluation_result.loc[name+str(id_num)] = dic
+			id_num += 1
+	baseline = str(1-df_test.describe()[y_col]["mean"])
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	evaluation_result.loc["baseline"] = baseline_dict
+	### OUTPUT EVALUATION TABLE
+	# print evaluation_result
+	'''
