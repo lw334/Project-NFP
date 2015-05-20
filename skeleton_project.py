@@ -64,6 +64,9 @@ def cat_var_to_binary(df, cols):
 	for col in cols:
 		df = cat_var_to_binary_helper(df, col)
 	return df
+### need to change
+##for i in range(): df2[df1.columns[i]] = (df[s].ix[:]==df1.columns[i]).astype(int)
+
 
 def missing_indicator(df, column_name):
 	""" add a missing indicator for a feature to the dataframe, 1 if missing and 0 otherwise. """
@@ -206,6 +209,8 @@ if __name__ == '__main__':
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
+	# maybe delete this variable 
+	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
@@ -226,7 +231,6 @@ if __name__ == '__main__':
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"] 
 	#"NURSE_0_BIRTH_YEAR"
-	df = fill_str(df, TIME, "0001-01-01 00:00:00")
 	#fill in the mode
 	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
 	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
