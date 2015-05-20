@@ -260,7 +260,8 @@ if __name__ == '__main__':
 	#generated
 	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
 	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
-	GENERATED = ["leftbeforebirth", "enrollment_duration"]
+	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age"]
 
 	#"EndDate" #NEED TO MAKE EndDate ONLY IF BEFORE client_edd
 	#NEED TO FIX THIS NURSE BIRTH YEAR "NURSE_0_BIRTH_YEAR"
