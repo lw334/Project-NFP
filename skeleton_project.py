@@ -236,23 +236,23 @@ if __name__ == '__main__':
 	"EndDate","HireDate"] 
 	#"NURSE_0_BIRTH_YEAR"
 	df = fill_str(df, TIME, "0001-01-01 00:00:00")
+	#fill in the mode
+	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
+	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
+	df = fill_str(df, "client_edd", "2009-09-15 00:00:00")
+	df = fill_str(df, "NURSE_0_FIRST_HOME_VISIT_DATE","2001-06-18 00:00:00")
+	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
+	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
+	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
 	change_time_var(df,TIME)
 	get_year(df, TIME)
+	get_month(df, TIME)
 	#generated
 	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
 	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
-	GENERATED = ["leftbeforebirth", "enrollment_duration"]
-
-	#"EndDate" #NEED TO MAKE EndDate ONLY IF BEFORE client_edd
-	#NEED TO FIX THIS NURSE BIRTH YEAR "NURSE_0_BIRTH_YEAR"
-	MONTH = ["client_edd"]
-	if df["client_enrollment"].isnull().any():
-		df["client_enrollment"] = df["client_enrollment"].fillna(df["NURSE_0_FIRST_HOME_VISIT_DATE"])
-	df = df_in.dropna(subset = TIME)
-	#df[TIME] = fill_str(df, TIME, "0001-01-01 00:00:00") 
-	change_time_var(df,TIME)
-	get_year(df, TIME)
-	get_month(df,MONTH)
+	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
+	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
 	df.drop(TIME, axis=1, inplace=True)
 
 
