@@ -189,7 +189,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["accuracy"] = str(np.mean(y == y_pred))
 	rv["precision"] = str(precision_score(y, y_pred))
 	rv["recall"] = str(recall_score(y, y_pred))
-	rv["f1"] = str(f1_score(y, y_pred))
+	rv["f1"] = str(f1_score(y, y_pred, labels=[0, 1]))
 	rv["auc_roc"] = str(roc_auc_score(y, y_pred))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
@@ -201,11 +201,20 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred)
 
+def precision_recall_curve(y_true, y_predicted):
+	from sklearn.metrics import precision_recall_curve
+	p, r, th = precision_recall_curve(y2, clf.predict_proba(x2)[:, 1])
+	plot(r, p)
+	xlabel('Recall')
+	ylabel('Precision')
+	plt.show()
+	return 
+
 
 if __name__ == '__main__':
 
 	#upload data
-	input_file = "project_data9.csv"
+	input_file = "project_data10.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -258,8 +267,8 @@ if __name__ == '__main__':
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2007
-	last_test_year = 2008
+	last_train_year = 2008
+	last_test_year = 2009
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -349,15 +358,11 @@ if __name__ == '__main__':
 
 	# Transforming features 
 	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
-	df_test = cat_var_to_binary(df_mind_test,CATEGORICAL)
+	df_test = cat_var_to_binary(df_mind_test,CATEGORICAL) #WHAT DO WE DO HERE BECAUSE SOME BINARIES ARE IN TRAINING BUT NOT TEST!!! 
 
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-	number_train = (missing(df_train)>0).sum()
-	number_test = (missing(df_test)>0).sum()
-	print "NUMBER OF COLS with missing values in df_train", number_train
-	print "NUMBER OF COLS with missing values in df_test", number_test
 
 	# df_train = pd.DataFrame.from_csv("train_1.csv")
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
@@ -368,8 +373,14 @@ if __name__ == '__main__':
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
+
+	number_train = (missing(df_train)>0).sum()
+	number_test = (missing(df_test)>0).sum()
+	print "NUMBER OF COLS with missing values in df_train", number_train
+	print "NUMBER OF COLS with missing values in df_test", number_test
+
 	y_col = 'premature'
-	x_cols = df_train.columns[3:100]
+	x_cols = df_train.columns[3:160]
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
@@ -383,12 +394,12 @@ if __name__ == '__main__':
 	logit = LR(fit_intercept=False)
 	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
 	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
-	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
+	randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
 	decisiontree = DTC(criterion='gini')#can also be 'entropy'
 	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
 	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [logit]
+	classifiers = [randomforest]
 
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
