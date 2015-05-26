@@ -132,6 +132,9 @@ def get_month(df, datelabel):
 	for date in datelabel:
 		df[date + '_mth'] = df[date].dt.month
 
+def applythreshold(array, threshold):
+	return np.where(array >= threshold, 1, 0)
+
 def train_test_split(df,column_name,last_train_yr):
 	'''split function for main train and testing, according to last_train_yr'''
 	train_df = df.loc[(df[column_name] <= last_train_yr)]
@@ -190,16 +193,17 @@ def run_cv(train_df, test_df, x_cols, y_col, clf):
 	test_time = end_test - begin_test
 	return y_pred, y_pred_proba, y_test, train_time, test_time
 
-def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
+def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
 	'''generate evaluation results'''
 	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
 	rv = {}
-	rv["accuracy"] = str(np.mean(y == y_pred))
-	rv["precision"] = str(precision_score(y, y_pred))
-	rv["recall"] = str(recall_score(y, y_pred))
-	rv["f1"] = str(f1_score(y, y_pred, labels=[0, 1]))
-	rv["auc_roc"] = str(roc_auc_score(y, y_pred))
+	y_pred_new = applythreshold(y_pred_prob[:,1], threshold)
+	rv["accuracy"] = str(np.mean(y == y_pred_new))
+	rv["precision"] = str(precision_score(y, y_pred_new))
+	rv["recall"] = str(recall_score(y, y_pred_new))
+	rv["f1"] = str(f1_score(y, y_pred_new, labels=[0, 1]))
+	rv["auc_roc"] = str(roc_auc_score(y, y_pred_new))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
 	#rv["auc_roc"] = str(auc(fpr, tpr))
@@ -208,7 +212,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time):
 	#rv["auc_prc"] = str(auc(recall_c, precision_c))
 	rv["train_time"] = str(train_time)
 	rv["test_time"] = str(test_time)
-	return pd.Series(rv), confusion_matrix(y, y_pred)
+	return pd.Series(rv), confusion_matrix(y, y_pred_new)
 
 def precision_recall_curve(y_true, y_predicted):
 	from sklearn.metrics import precision_recall_curve
@@ -297,7 +301,7 @@ if __name__ == '__main__':
 	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white"]
 
 	#upload data
-	input_file = "project_data10.csv"
+	input_file = "/Users/weiwei/Desktop/data10.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -306,16 +310,16 @@ if __name__ == '__main__':
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
-	#saves distributions
-	pd.value_counts(df.premature).plot(kind='bar')
-	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
-	for col in col_names:
-		bar_chart(df,col)
-	first_graph = df[NUMERICAL]
-	bin_no = 40
-	first = dist(first_graph, bin_no, "dist_1.png")
-	plt.savefig("dist_1.png")
-	#plt.show()
+	# #saves distributions
+	# pd.value_counts(df.premature).plot(kind='bar')
+	# col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
+	# for col in col_names:
+	# 	bar_chart(df,col)
+	# first_graph = df[NUMERICAL]
+	# bin_no = 40
+	# first = dist(first_graph, bin_no, "dist_1.png")
+	# plt.savefig("dist_1.png")
+	# #plt.show()
 
 	# filling in missing dates with mode and get years and months
 	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
@@ -336,7 +340,7 @@ if __name__ == '__main__':
 	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
 	get_dummy_dates(df,"leftbeforebirth")
 	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
-	df.drop(TIME, axis=1, inplace=True)
+
 
 
 	################################ if split by year #################################################
@@ -381,7 +385,7 @@ if __name__ == '__main__':
 	# Set dependent and independent variables
 	# cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
-	"client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"]
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
@@ -419,7 +423,7 @@ if __name__ == '__main__':
 	for classifier in classifiers:
 		y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
 		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time)
+		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
 	baseline = str(1-df_test.describe()[y_col]["mean"])
