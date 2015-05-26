@@ -34,6 +34,7 @@ def stats(dataframe):
 def dist(dataframe, number_of_bins, name):
 	df = dataframe
 	ax_list = df.hist(bins=number_of_bins)
+	# plt.rcParams.update({'font.size': 5})
 	plt.savefig(name)
 	return ax_list
 
@@ -42,8 +43,9 @@ def bar_chart(dataframe,col_title):
 	dataframe_cols = df[col_title]
 	bar = pd.value_counts(dataframe_cols).plot(kind='bar',title=col_title)
 	name = col_title + ".png"
+	# plt.rcParams.update({'font.size': 12})
+	# plt.subplots_adjust(bottom=0.4)
 	plt.savefig(name)
-	plt.rcParams.update({'font.size': 12})
 	return bar
 
 	# data preprocessing
@@ -214,13 +216,14 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred_new)
 
-def precision_recall_curve(y_true, y_pred_prob):
+def precision_recall_curve(name, y_true, y_pred_prob):
+	plt.clf()
 	from sklearn.metrics import precision_recall_curve
 	p, r, th = precision_recall_curve(y_true, y_pred_prob)
-	plot(r, p)
-	xlabel('Recall')
-	ylabel('Precision')
-	plt.show()
+	plt.plot(r, p)
+	plt.xlabel('Recall')
+	plt.ylabel('Precision')
+	plt.savefig(name+"_pr.png")
 	return 
 
 
@@ -314,9 +317,11 @@ if __name__ == '__main__':
 	pd.value_counts(df.premature).plot(kind='bar')
 	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
 	for col in col_names:
+		plt.clf()
 		bar_chart(df,col)
 	first_graph = df[NUMERICAL]
 	bin_no = 40
+	plt.clf()
 	first = dist(first_graph, bin_no, "dist_1.png")
 	plt.savefig("dist_1.png")
 	#plt.show()
@@ -349,13 +354,13 @@ if __name__ == '__main__':
 
 	################################ if split by year #################################################
 	#split data into training and test
-	last_train_year = 2009 #so means test_df starts from 2010
+	last_train_year = 2012 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2007 #2007
-	last_test_year = 2008 #2008
+	last_train_year = 2009 #2007, 2008, 2009
+	last_test_year = 2012 #2008, 2009, 2012
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -424,6 +429,7 @@ if __name__ == '__main__':
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
 	classifiers = [logit, neighb, randomforest, decisiontree, bagging, boosting]
 
+
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -432,6 +438,7 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
+		precision_recall_curve(name, y_true, y_pred_prob)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
