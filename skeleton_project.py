@@ -191,7 +191,7 @@ def run_cv(train_df, test_df, x_cols, y_col, clf):
 	y_pred_proba = clf.predict_proba(X_test)
 	train_time = end_train - begin_train
 	test_time = end_test - begin_test
-	return y_pred, y_pred_proba, y_test, train_time, test_time
+	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
@@ -214,9 +214,9 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred_new)
 
-def precision_recall_curve(y_true, y_predicted):
+def precision_recall_curve(y_true, y_pred_prob):
 	from sklearn.metrics import precision_recall_curve
-	p, r, th = precision_recall_curve(y2, clf.predict_proba(x2)[:, 1])
+	p, r, th = precision_recall_curve(y_true, y_pred_prob)
 	plot(r, p)
 	xlabel('Recall')
 	ylabel('Precision')
@@ -341,6 +341,10 @@ if __name__ == '__main__':
 	get_dummy_dates(df,"leftbeforebirth")
 	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
 
+	#drop the time variables after extracting dates (years and months)
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"EndDate","HireDate"]
 
 
 	################################ if split by year #################################################
@@ -383,10 +387,6 @@ if __name__ == '__main__':
 
 	# Models
 	# Set dependent and independent variables
-	# cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
-	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
-	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"]
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
@@ -408,15 +408,21 @@ if __name__ == '__main__':
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	
-	logit = LR(fit_intercept=False)
-	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	# logit = LR(fit_intercept=False)
+	logit = LR()
+	# neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	neighb = KNC()
 	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
-	randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
-	decisiontree = DTC(criterion='gini')#can also be 'entropy'
-	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
-	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	#randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
+	randomforest = RFC()
+	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
+	decisiontree = DTC()
+	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
+	bagging = BC()
+	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	boosting = GBC()
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [randomforest]
+	classifiers = [logit, neighb, randomforest, decisiontree, bagging, boosting]
 
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
@@ -430,7 +436,7 @@ if __name__ == '__main__':
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
-	# print evaluation_result
+	print evaluation_result
 
 	'''
 	################################ if split the sorted dataframe evenly ##################################
