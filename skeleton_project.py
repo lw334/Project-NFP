@@ -216,15 +216,21 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred_new)
 
-def precision_recall_curve(name, y_true, y_pred_prob):
-	plt.clf()
+def precision_recall_curve(y_true, y_pred_prob, model_name):
 	from sklearn.metrics import precision_recall_curve
 	p, r, th = precision_recall_curve(y_true, y_pred_prob)
-	plt.plot(r, p)
+	graph_name = 'Precision-Recall curve' + model_name
+	plt.clf()
+	graph = plt.plot(r, p, label=graph_name)
 	plt.xlabel('Recall')
 	plt.ylabel('Precision')
-	plt.savefig(name+"_pr.png")
-	return 
+	plt.ylim([0.0, 0.7])
+	plt.xlim([0.0, 1.0])
+	name = model_name + ".png"
+	plt.title(graph_name)
+	plt.savefig(name)
+	#plt.show()
+	return graph
 
 
 if __name__ == '__main__':
@@ -438,7 +444,7 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-		precision_recall_curve(name, y_true, y_pred_prob)
+		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
