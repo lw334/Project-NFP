@@ -225,7 +225,7 @@ def precision_recall_curve(y_true, y_pred_prob, model_name):
 	plt.ylim([0.0, 0.7])
 	plt.xlim([0.0, 1.0])
 	name = model_name + ".png"
-	plt.title(name)
+	plt.title(graph_name)
 	plt.savefig(name)
 	#plt.show()
 	return graph
