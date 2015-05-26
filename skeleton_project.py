@@ -378,9 +378,7 @@ if __name__ == '__main__':
 	# Models
 	# Set dependent and independent variables
 	# cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
-	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
-	"client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"]
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
