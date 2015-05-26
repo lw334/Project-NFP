@@ -217,16 +217,18 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 def precision_recall_curve(y_true, y_pred_prob, model_name):
 	from sklearn.metrics import precision_recall_curve
 	p, r, th = precision_recall_curve(y_true, y_pred_prob)
-	name = 'Precision-Recall curve' + model_name
-	plt.plot(r, p, label=name)
+	graph_name = 'Precision-Recall curve' + model_name
+	plt.clf()
+	graph = plt.plot(r, p, label=graph_name)
 	plt.xlabel('Recall')
 	plt.ylabel('Precision')
 	plt.ylim([0.0, 0.7])
 	plt.xlim([0.0, 1.0])
+	name = model_name + ".png"
+	plt.title(name)
+	plt.savefig(name)
 	#plt.show()
-	file_name = name + ".png"
-	plt.savefig(file_name)
-	return 
+	return graph
 
 
 if __name__ == '__main__':
@@ -437,7 +439,7 @@ if __name__ == '__main__':
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
-		precision_recall_curve(y_true, y_pred_prob, name)
+		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
