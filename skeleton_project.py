@@ -64,9 +64,17 @@ def cat_var_to_binary(df, cols):
 	for col in cols:
 		df = cat_var_to_binary_helper(df, col)
 	return df
-### need to change
-##for i in range(): df2[df1.columns[i]] = (df[s].ix[:]==df1.columns[i]).astype(int)
 
+def cat_to_bi_test_helper(df, col_name, train_cols):
+	for i in range(len(train_cols)): 
+		df[col_name+"_"+str(train_cols[i])] = (df[col_name] == train_cols[i]).astype(int)
+	df.drop(col_name, axis=1, inplace=True) 
+	return df
+
+def cat_to_bi_test(df, cols, df_train):
+	for col in cols:
+		df = cat_to_bi_test_helper(df, col, pd.get_dummies(df_train[col]).columns)
+	return df
 
 def missing_indicator(df, column_name):
 	""" add a missing indicator for a feature to the dataframe, 1 if missing and 0 otherwise. """
@@ -87,10 +95,9 @@ def fill_nans(df, column_name, value):
 	new_df[column_name] = new_df[column_name].fillna(value)
 	return new_df 
 
-def fill_str(df, colist, value):
+def fill_str(df, col, value):
 	''' filling in arbitrary value '''
-	for col in colist:
-		df[col] = df[col].fillna(value)
+	df[col] = df[col].fillna(value)
 	return df
 
 def fill_mode(df, column_name):
@@ -162,13 +169,13 @@ def run_cv(train_df, test_df, x_cols, y_col, clf):
 	from sklearn.preprocessing import StandardScaler
 	from time import time
 	# normalization
-	X_train = np.array(train_df[x_cols].as_matrix())
-	X_test = np.array(test_df[x_cols].as_matrix())
+	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
+	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
 	# scaler = StandardScaler()
 	# X_train = scaler.fit_transform(X_train)
 	# X_test = scaler.fit_transform(X_test)
-	y_train = np.ravel(train_df[y_col])
-	y_test = np.ravel(test_df[y_col])
+	y_train = np.ravel(train_df[y_col].astype(np.float))
+	y_test = np.ravel(test_df[y_col].astype(np.float))
 	# train and test
 	begin_train = time()
 	clf.fit(X_train, y_train)
@@ -213,67 +220,10 @@ def precision_recall_curve(y_true, y_predicted):
 
 if __name__ == '__main__':
 
-	#upload data
-	input_file = "project_data10.csv"
-	df_in = readcsv_funct(input_file)
-	#drop rows where premature values are missing
-	df = df_in.dropna(subset = ['premature'])
-	# maybe delete this variable 
-	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
-	summary_stat= stats(df)
-	#print "stats", summary_stat
-
-	#saves distributions
-	pd.value_counts(df.premature).plot(kind='bar')
-	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
-	for col in col_names:
-		bar_chart(df,col)
-	NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", "edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-	"NURSE_0_YEAR_NURSING_EXPERIENCE"]
-	first_graph = df[NUMERICAL]
-	bin_no = 40
-	first = dist(first_graph, bin_no, "dist_1.png")
-	plt.savefig("dist_1.png")
-	#plt.show()
-
-	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"] 
 	#"NURSE_0_BIRTH_YEAR"
-	#fill in the mode
-	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
-	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
-	df = fill_str(df, "client_edd", "2009-09-15 00:00:00")
-	df = fill_str(df, "NURSE_0_FIRST_HOME_VISIT_DATE","2001-06-18 00:00:00")
-	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
-	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
-	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
-	change_time_var(df,TIME)
-	get_year(df, TIME)
-	get_month(df, TIME)
-	#generated
-	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
-	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
-	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
-	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
-	df.drop(TIME, axis=1, inplace=True)
 
-
-	################################ if split by year #################################################
-	#split data into training and test
-	last_train_year = 2009 #so means test_df starts from 2010
-	column_name = "client_enrollment_yr"
-	train_df, test_df = train_test_split(df,column_name,last_train_year)
-
-	#split train_df into the various train and testing splits for CV
-	last_train_year = 2008
-	last_test_year = 2009
-	column_name = "client_enrollment_yr"
-	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
-
-	#impute 
-	#make dummy indicators for columns with large numbers of missing values
 	missing_cols = ["CLIENT_ABUSE_AFRAID_0_PARTNER", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_HIT_0_SLAP_PARTNER",
 	"CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO","CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
@@ -284,8 +234,6 @@ if __name__ == '__main__':
 	"NURSE_0_YEAR_NURSING_EXPERIENCE","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
 	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
-	df_mind_train = run_missing_indicator(cv_train,missing_cols)
-	df_mind_test = run_missing_indicator(cv_test,missing_cols)
 
 	NANCOLS_CAT_BINARY = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
@@ -346,6 +294,67 @@ if __name__ == '__main__':
 	"mental_health","other_diseases","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative",
 	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white"]
+
+	#upload data
+	input_file = "project_data10.csv"
+	df_in = readcsv_funct(input_file)
+	#drop rows where premature values are missing
+	df = df_in.dropna(subset = ['premature'])
+	# maybe delete this variable 
+	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
+	summary_stat= stats(df)
+	#print "stats", summary_stat
+
+	#saves distributions
+	pd.value_counts(df.premature).plot(kind='bar')
+	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
+	for col in col_names:
+		bar_chart(df,col)
+	first_graph = df[NUMERICAL]
+	bin_no = 40
+	first = dist(first_graph, bin_no, "dist_1.png")
+	plt.savefig("dist_1.png")
+	#plt.show()
+
+	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
+	#fill in the mode
+	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
+	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
+	df = fill_str(df, "client_edd", "2009-09-15 00:00:00")
+	df = fill_str(df, "NURSE_0_FIRST_HOME_VISIT_DATE","2001-06-18 00:00:00")
+	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
+	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
+	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
+	change_time_var(df,TIME)
+	get_year(df, TIME)
+	get_month(df, TIME)
+	#generated
+	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
+	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
+	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
+	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
+	df.drop(TIME, axis=1, inplace=True)
+
+
+	################################ if split by year #################################################
+	#split data into training and test
+	last_train_year = 2009 #so means test_df starts from 2010
+	column_name = "client_enrollment_yr"
+	train_df, test_df = train_test_split(df,column_name,last_train_year)
+
+	#split train_df into the various train and testing splits for CV
+	last_train_year = 2008
+	last_test_year = 2009
+	column_name = "client_enrollment_yr"
+	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
+
+	#impute 
+	#make dummy indicators for columns with large numbers of missing values
+	df_mind_train = run_missing_indicator(cv_train,missing_cols)
+	df_mind_test = run_missing_indicator(cv_test,missing_cols)
+
+
 	#NEED DATE COLUMNS OR OTHER RANDOM ONES 
 	#fill_nans
 	for col_name in NANCOLS_CAT_BINARY:
@@ -358,18 +367,20 @@ if __name__ == '__main__':
 
 	# Transforming features 
 	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
-	df_test = cat_var_to_binary(df_mind_test,CATEGORICAL) #WHAT DO WE DO HERE BECAUSE SOME BINARIES ARE IN TRAINING BUT NOT TEST!!! 
+	df_test = cat_to_bi_test(df_mind_test,CATEGORICAL,df_mind_train)
 
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
-
 
 	# df_train = pd.DataFrame.from_csv("train_1.csv")
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
 
 	# Models
 	# Set dependent and independent variables
-	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+	# cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	"client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"EndDate","HireDate"]
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
@@ -380,7 +391,7 @@ if __name__ == '__main__':
 	print "NUMBER OF COLS with missing values in df_test", number_test
 
 	y_col = 'premature'
-	x_cols = df_train.columns[3:160]
+	x_cols = df_train.columns[4:]
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
