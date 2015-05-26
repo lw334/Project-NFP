@@ -198,7 +198,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	'''generate evaluation results'''
 	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
 	rv = {}
-	y_pred_new = applythreshold(y_pred_prob[:,1], threshold)
+	y_pred_new = applythreshold(y_pred_prob, threshold)
 	rv["accuracy"] = str(np.mean(y == y_pred_new))
 	rv["precision"] = str(precision_score(y, y_pred_new))
 	rv["recall"] = str(recall_score(y, y_pred_new))
@@ -301,7 +301,7 @@ if __name__ == '__main__':
 	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white"]
 
 	#upload data
-	input_file = "/Users/weiwei/Desktop/data10.csv"
+	input_file = "project_data10.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -310,16 +310,16 @@ if __name__ == '__main__':
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
-	# #saves distributions
-	# pd.value_counts(df.premature).plot(kind='bar')
-	# col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
-	# for col in col_names:
-	# 	bar_chart(df,col)
-	# first_graph = df[NUMERICAL]
-	# bin_no = 40
-	# first = dist(first_graph, bin_no, "dist_1.png")
-	# plt.savefig("dist_1.png")
-	# #plt.show()
+	#saves distributions
+	pd.value_counts(df.premature).plot(kind='bar')
+	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
+	for col in col_names:
+		bar_chart(df,col)
+	first_graph = df[NUMERICAL]
+	bin_no = 40
+	first = dist(first_graph, bin_no, "dist_1.png")
+	plt.savefig("dist_1.png")
+	#plt.show()
 
 	# filling in missing dates with mode and get years and months
 	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
@@ -354,8 +354,8 @@ if __name__ == '__main__':
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2008
-	last_test_year = 2009
+	last_train_year = 2007 #2007
+	last_test_year = 2008 #2008
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -409,18 +409,18 @@ if __name__ == '__main__':
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	
 	# logit = LR(fit_intercept=False)
-	logit = LR()
+	logit = LR(C=10.0)
 	# neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
-	neighb = KNC()
+	neighb = KNC(n_neighbors=15)
 	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
 	#randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
-	randomforest = RFC()
+	randomforest = RFC(n_estimators=10, max_features="log2", max_depth=6)
 	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
-	decisiontree = DTC()
+	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=6)
 	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
-	bagging = BC()
+	bagging = BC(n_estimators=15, max_samples=0.5, max_features=0.5)
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
-	boosting = GBC()
+	boosting = GBC(n_estimators=150, learning_rate=0.05)
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
 	classifiers = [logit, neighb, randomforest, decisiontree, bagging, boosting]
 
