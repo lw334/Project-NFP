@@ -119,8 +119,10 @@ def change_time_var(df, datelabel):
 def get_interval(df, startdate, enddate, labelinterval):
 	'''convert into datetime objects before using the function'''
 	df[labelinterval] = df[enddate] - df[startdate]
-	df[labelinterval].astype('int64')
-	df[labelinterval].apply(lambda x: 1 if x < 0 else 0)
+	df[labelinterval] = df[labelinterval].astype('int64')
+
+def get_dummy_dates(df, labelinterval):
+	df[labelinterval] = df[labelinterval].apply(lambda x: 1 if x < 0 else 0)
 
 def get_year(df, datelabel):
 	for date in datelabel:
@@ -222,7 +224,6 @@ if __name__ == '__main__':
 
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"] 
-	#"NURSE_0_BIRTH_YEAR"
 
 	missing_cols = ["CLIENT_ABUSE_AFRAID_0_PARTNER", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_HIT_0_SLAP_PARTNER",
@@ -316,8 +317,7 @@ if __name__ == '__main__':
 	plt.savefig("dist_1.png")
 	#plt.show()
 
-	# filling in missing dates to "0001-01-01 00:00:00" and get years and months
-	#fill in the mode
+	# filling in missing dates with mode and get years and months
 	df = fill_str(df, "client_enrollment", "2009-04-08 00:00:00")
 	df = fill_str(df, "client_dob", "1990-08-04 00:00:00")
 	df = fill_str(df, "client_edd", "2009-09-15 00:00:00")
@@ -325,14 +325,16 @@ if __name__ == '__main__':
 	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
 	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
 	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
+	df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973")
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	get_month(df, TIME)
 	#generated
 	get_interval(df, "client_edd", "EndDate", "leftbeforebirth")
-	get_interval(df, "client_edd", "client_enrollment", "enrollment_duration")
+	get_interval(df, "client_enrollment", "client_edd", "enrollment_duration")
 	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
 	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
+	get_dummy_dates(df,"leftbeforebirth")
 	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
 	df.drop(TIME, axis=1, inplace=True)
 
