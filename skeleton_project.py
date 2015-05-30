@@ -34,6 +34,7 @@ def stats(dataframe):
 def dist(dataframe, number_of_bins, name):
 	df = dataframe
 	ax_list = df.hist(bins=number_of_bins)
+	# plt.rcParams.update({'font.size': 5})
 	plt.savefig(name)
 	return ax_list
 
@@ -43,7 +44,8 @@ def bar_chart(dataframe,col_title):
 	bar = pd.value_counts(dataframe_cols).plot(kind='bar',title=col_title)
 	name = col_title + ".png"
 	plt.savefig(name)
-	plt.rcParams.update({'font.size': 12})
+	#plt.rcParams.update({'font.size': 12})
+	# plt.subplots_adjust(bottom=0.4)
 	return bar
 
 	# data preprocessing
@@ -294,6 +296,15 @@ if __name__ == '__main__':
 	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1",
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
 	"PrimRole","SecRole"]
+	
+	CATEGORICAL_2 = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
+	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
+	"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
+	"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I", "CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO",
+	"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
+	"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
+	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
+	"PrimRole","SecRole"]
 
 	BOOLEAN = ["nicu", "premature", "lbw", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
@@ -352,17 +363,37 @@ if __name__ == '__main__':
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"]
+	cols_to_drop_2 = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"EndDate","HireDate","SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
+	"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
+	"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
+	"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
+	"SERVICE_USE_0_IPV_CLIENT","SERVICE_USE_0_CPS_CHILD",
+	"SERVICE_USE_0_MENTAL_CLIENT","SERVICE_USE_0_SMOKE_CLIENT",
+	"SERVICE_USE_0_ALCOHOL_ABUSE_CLIE","SERVICE_USE_0_DRUG_ABUSE_CLIENT",
+	"SERVICE_USE_0_MEDICAID_CLIENT","SERVICE_USE_0_MEDICAID_CHILD",
+	"SERVICE_USE_0_SCHIP_CLIENT","SERVICE_USE_0_SCHIP_CHILD",
+	"SERVICE_USE_0_SPECIAL_NEEDS_CHIL","SERVICE_USE_0_PCP_CLIENT","SERVICE_USE_0_PCP_WELL_CHILD",
+	"SERVICE_USE_0_DEVELOPMENTAL_DISA","SERVICE_USE_0_WIC_CLIENT","SERVICE_USE_0_CHILD_CARE_CLIENT",
+	"SERVICE_USE_0_JOB_TRAINING_CLIEN","SERVICE_USE_0_HOUSING_CLIENT",
+	"SERVICE_USE_0_TRANSPORTATION_CLI","SERVICE_USE_0_PREVENT_INJURY_CLI",
+	"SERVICE_USE_0_BIRTH_EDUC_CLASS_C","SERVICE_USE_0_LACTATION_CLIENT",
+	"SERVICE_USE_0_GED_CLIENT","SERVICE_USE_0_HIGHER_EDUC_CLIENT",
+	"SERVICE_USE_0_CHARITY_CLIENT","SERVICE_USE_0_LEGAL_CLIENT","SERVICE_USE_0_OTHER1",
+	"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
+	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1"]
 
 
 	################################ if split by year #################################################
 	#split data into training and test
-	last_train_year = 2009 #so means test_df starts from 2010
+	last_train_year = 2012 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2007 #2007
-	last_test_year = 2008 #2008
+	last_train_year = 2009 #2007
+	last_test_year = 2010 #2008
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -383,7 +414,7 @@ if __name__ == '__main__':
 		df_mind_test = fill_median(df_mind_test,col_name)
 
 	# Transforming features 
-	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
+	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL) #CAN change to CATEGORICAL_2
 	df_test = cat_to_bi_test(df_mind_test,CATEGORICAL,df_mind_train)
 
 	df_train = binary_transform(df_train, BOOLEAN)
@@ -393,7 +424,7 @@ if __name__ == '__main__':
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
 
 	# Models
-	# Set dependent and independent variables
+	# Set dependent and independent variables ####CAN CHANGE TO cols_to_drop_2
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
@@ -429,8 +460,39 @@ if __name__ == '__main__':
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=150, learning_rate=0.05)
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [logit, neighb, randomforest, decisiontree, bagging, boosting]
+	classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
 
+	'''
+	####################GRIDSEARCH FOR BEST PARAMETERS
+	
+	from sklearn.grid_search import GridSearchCV
+	# create and fit a ridge regression model
+	model = logit #randomforest, bagging, boosting
+	score_func = accuracy_score
+	#for logit
+	params = {'penalty': ['l2','l1'],'C': [0.0001, 0.001, 0.01, 0.5, 1, 10, 100, 1000]}
+	#for randomforest
+	#params = {'n_estimators': [6,10,20,30,50,100], 'max_features': ["log2", "sqrt"], 'max_depth':[4,6,10,15], 'min_samples_split':[4], 'min_samples_leaf':[1,2]}
+	#for bagging
+	#params = {'n_estimators':[5,10,15,20,30], 'max_samples':[1.0], 'max_features':[1,2], 'bootstrap': [True, False], 'bootstrap_features': [False, True]}
+	#for boosting
+	#params = {'loss': ['deviance', 'exponential'], 'learning_rate':[0.1, 0.2, 0.5, 1.0], 'n_estimators':[20,50,100,200,300], 'subsample':[0.2,0.5,1.0], 'min_samples_split':[1,2,4], 'min_samples_leaf':[1,2], 'min_weight_fraction_leaf':[0.0,0.2], 'max_depth':[2,3,5]}
+	grid = GridSearchCV(estimator=model, param_grid=params, cv=2, scoring="f1")
+	X = df_train[x_cols]
+	y = df_train[y_col]
+	# normalization
+	X= np.array(X.as_matrix().astype(np.float))
+	#X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
+	y = np.ravel(y.astype(np.float))
+	#y_test = np.ravel(test_df[y_col].astype(np.float))
+	grid.fit(X, y)
+	print(grid)
+	# summarize the results of the grid search
+	print(grid.best_score_)
+	print(grid.best_estimator_)
+
+	'''
+	
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -445,6 +507,7 @@ if __name__ == '__main__':
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	print evaluation_result
+
 
 	'''
 	################################ if split the sorted dataframe evenly ##################################
@@ -526,3 +589,29 @@ if __name__ == '__main__':
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	'''
+
+	"""
+	RESULTS OF PARAMETER search
+	GridSearchCV(cv=2,
+       estimator=LogisticRegression(C=1, class_weight=None, dual=False, fit_intercept=True,
+          intercept_scaling=1, penalty='l2', random_state=None, tol=0.0001),
+       fit_params={}, iid=True, loss_func=None, n_jobs=1,
+       param_grid={'penalty': ['l2', 'l1'], 'C': [0.0001, 0.001, 0.01]},
+       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+       verbose=0)
+	0.00650781799647 (f1_score)
+	LogisticRegression(C=0.0001, class_weight=None, dual=False,
+          fit_intercept=True, intercept_scaling=1, penalty='l2',
+          random_state=None, tol=0.0001)
+
+	       param_grid={'n_estimators': [6, 10, 20, 30, 50, 100], 'max_features': ['log2'], 'min_samples_split': [4], 'max_depth': [4, 6, 10, 15], 'min_samples_leaf': [1, 2]},
+       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+       verbose=0)
+	0.00785545954438
+	RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=15, max_features='log2', max_leaf_nodes=None,
+            min_samples_leaf=1, min_samples_split=4,
+            min_weight_fraction_leaf=0.0, n_estimators=6, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)
+	"""
