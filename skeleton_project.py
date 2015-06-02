@@ -171,10 +171,11 @@ def sequential_cv_index(df_len, num_moves, total_pct, train_pct):
 		rv.append((train_index, test_index))
 	return rv
 
-def run_cv(train_df, test_df, x_cols, y_col, clf):
+def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
+	clf = clf(**kwargs)
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
 	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
@@ -232,6 +233,42 @@ def precision_recall_curve(y_true, y_pred_prob, model_name):
 	#plt.show()
 	return graph
 
+def value_combinations(dic):
+	'''
+	Takes a dictionary which maps from parameter name to a list of possible
+	values, and returns a list of all possible dictionaries. Each dictionary 
+	maps from parameter name to one particular value.
+	'''
+	rv = []
+	key = []
+	vals = []
+	for item in dic.items():
+		key.append(item[0])
+		vals.append(item[1])
+	combs = iter.product(*vals)
+	for comb in combs:
+		temp = {}
+		for i in range(len(key)):
+			temp[key[i]] = comb[i]
+		rv.append(temp)
+	return rv
+
+def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_vals, list_threshold, criterion, **kwargs):
+	temp = []
+	classifier_name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+	combs = value_combinations(dic_param_vals)
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])
+	results = pd.DataFrame(columns=metrics)
+	for comb in combs:
+		y_pred, y_pred_prob, y_test, time_train, time_test = run_cv(train_df, test_df, x_cols, y_col, classifier, **comb)
+		for threshold in list_threshold:
+			name = classifier_name+"_"+str(comb)+"_"+str(threshold)
+			evaluation_result, conf_matrix = evaluate(name, y_test, y_pred, y_pred_prob, time_train, time_test, threshold)
+			print name
+			print conf_matrix
+			results.loc[name] = evaluation_result
+	results.sort(columns=criterion,ascending=False)
+	return results
 
 if __name__ == '__main__':
 
@@ -296,6 +333,15 @@ if __name__ == '__main__':
 	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1",
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
 	"PrimRole","SecRole"]
+	
+	CATEGORICAL_2 = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
+	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
+	"CLIENT_ABUSE_TIMES_0_PUNCH_KICK_", "CLIENT_ABUSE_TIMES_0_BURN_BRUISE",
+	"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I", "CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO",
+	"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
+	"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
+	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
+	"PrimRole","SecRole"]
 
 	BOOLEAN = ["nicu", "premature", "lbw", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
@@ -356,6 +402,26 @@ if __name__ == '__main__':
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"]
+	cols_to_drop_2 = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"EndDate","HireDate","SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
+	"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
+	"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
+	"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
+	"SERVICE_USE_0_IPV_CLIENT","SERVICE_USE_0_CPS_CHILD",
+	"SERVICE_USE_0_MENTAL_CLIENT","SERVICE_USE_0_SMOKE_CLIENT",
+	"SERVICE_USE_0_ALCOHOL_ABUSE_CLIE","SERVICE_USE_0_DRUG_ABUSE_CLIENT",
+	"SERVICE_USE_0_MEDICAID_CLIENT","SERVICE_USE_0_MEDICAID_CHILD",
+	"SERVICE_USE_0_SCHIP_CLIENT","SERVICE_USE_0_SCHIP_CHILD",
+	"SERVICE_USE_0_SPECIAL_NEEDS_CHIL","SERVICE_USE_0_PCP_CLIENT","SERVICE_USE_0_PCP_WELL_CHILD",
+	"SERVICE_USE_0_DEVELOPMENTAL_DISA","SERVICE_USE_0_WIC_CLIENT","SERVICE_USE_0_CHILD_CARE_CLIENT",
+	"SERVICE_USE_0_JOB_TRAINING_CLIEN","SERVICE_USE_0_HOUSING_CLIENT",
+	"SERVICE_USE_0_TRANSPORTATION_CLI","SERVICE_USE_0_PREVENT_INJURY_CLI",
+	"SERVICE_USE_0_BIRTH_EDUC_CLASS_C","SERVICE_USE_0_LACTATION_CLIENT",
+	"SERVICE_USE_0_GED_CLIENT","SERVICE_USE_0_HIGHER_EDUC_CLIENT",
+	"SERVICE_USE_0_CHARITY_CLIENT","SERVICE_USE_0_LEGAL_CLIENT","SERVICE_USE_0_OTHER1",
+	"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
+	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1"]
 
 
 	################################ if split by year #################################################
@@ -387,7 +453,7 @@ if __name__ == '__main__':
 		df_mind_test = fill_median(df_mind_test,col_name)
 
 	# Transforming features 
-	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL)
+	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL) #CAN change to CATEGORICAL_2
 	df_test = cat_to_bi_test(df_mind_test,CATEGORICAL,df_mind_train)
 
 	df_train = binary_transform(df_train, BOOLEAN)
@@ -397,7 +463,7 @@ if __name__ == '__main__':
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
 
 	# Models
-	# Set dependent and independent variables
+	# Set dependent and independent variables ####CAN CHANGE TO cols_to_drop_2
 	for col in cols_to_drop:
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
@@ -432,24 +498,81 @@ if __name__ == '__main__':
 	bagging = BC(n_estimators=15, max_samples=0.5, max_features=0.5)
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=150, learning_rate=0.05)
+
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [logit, neighb, randomforest, decisiontree, bagging, boosting]
+	#classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
+	classifiers = [LR, KNC, RFC, DTC, BC, GBC]
+
+	'''
+	####################GRIDSEARCH FOR BEST PARAMETERS
+	
+	from sklearn.grid_search import GridSearchCV
+	# create and fit a ridge regression model
+	model = logit #randomforest, bagging, boosting
+	score_func = accuracy_score
+	#for logit
+	params = {'penalty': ['l2','l1'],'C': [0.0001, 0.001, 0.01, 0.5, 1, 10, 100, 1000]}
+	#for randomforest
+	#params = {'n_estimators': [6,10,20,30,50,100], 'max_features': ["log2", "sqrt"], 'max_depth':[4,6,10,15], 'min_samples_split':[4], 'min_samples_leaf':[1,2]}
+	#for bagging
+	#params = {'n_estimators':[5,10,15,20,30], 'max_samples':[1.0], 'max_features':[1,2], 'bootstrap': [True, False], 'bootstrap_features': [False, True]}
+	#for boosting
+	#params = {'loss': ['deviance', 'exponential'], 'learning_rate':[0.1, 0.2, 0.5, 1.0], 'n_estimators':[20,50,100,200,300], 'subsample':[0.2,0.5,1.0], 'min_samples_split':[1,2,4], 'min_samples_leaf':[1,2], 'min_weight_fraction_leaf':[0.0,0.2], 'max_depth':[2,3,5]}
+	grid = GridSearchCV(estimator=model, param_grid=params, cv=2, scoring="f1")
+	X = df_train[x_cols]
+	y = df_train[y_col]
+	# normalization
+	X= np.array(X.as_matrix().astype(np.float))
+	#X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
+	y = np.ravel(y.astype(np.float))
+	#y_test = np.ravel(test_df[y_col].astype(np.float))
+	grid.fit(X, y)
+	print(grid)
+	# summarize the results of the grid search
+	print(grid.best_score_)
+	print(grid.best_estimator_)
+
+	'''
+	
+	# metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
+	# evaluation_result = pd.DataFrame(columns=metrics)
+	# for classifier in classifiers:
+	# 	y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
+	# 	name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+	# 	dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
+	# 	# print name, conf_matrix
+	# 	evaluation_result.loc[name] = dic
+	# 	p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
+	# baseline = str(1-df_test.describe()[y_col]["mean"])
+	# baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	# evaluation_result.loc["baseline"] = baseline_dict
+	# ### OUTPUT EVALUATION TABLE
+	# print evaluation_result
 
 
+	import itertools as iter
+	dic_param_vals = {
+		LR:{"C":[0.01, 0.1, 1.0, 10.0]},
+		KNC:{"n_neighbors":[5, 10, 15]},
+		LSVC:{"C":[0.1, 1.0, 10.0]},
+		RFC:{"n_estimators":[5, 10, 15], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
+		DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
+		BC:{"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
+		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]}
+	}
+	
+	list_threshold = np.arange(0.3,0.4,0.05)
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
-	for classifier in classifiers:
-		y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
-		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
-		# print name, conf_matrix
-		evaluation_result.loc[name] = dic
-		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
+	for classifier in classifiers:	
+		results = select_parameter(df_train, df_test, classifier, x_cols, y_col, dic_param_vals[classifier], list_threshold, "f1")
+		evaluation_result = evaluation_result.append(results)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	print evaluation_result
+
 
 	'''
 	################################ if split the sorted dataframe evenly ##################################
@@ -531,3 +654,29 @@ if __name__ == '__main__':
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	'''
+
+	"""
+	RESULTS OF PARAMETER search
+	GridSearchCV(cv=2,
+       estimator=LogisticRegression(C=1, class_weight=None, dual=False, fit_intercept=True,
+          intercept_scaling=1, penalty='l2', random_state=None, tol=0.0001),
+       fit_params={}, iid=True, loss_func=None, n_jobs=1,
+       param_grid={'penalty': ['l2', 'l1'], 'C': [0.0001, 0.001, 0.01]},
+       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+       verbose=0)
+	0.00650781799647 (f1_score)
+	LogisticRegression(C=0.0001, class_weight=None, dual=False,
+          fit_intercept=True, intercept_scaling=1, penalty='l2',
+          random_state=None, tol=0.0001)
+
+	       param_grid={'n_estimators': [6, 10, 20, 30, 50, 100], 'max_features': ['log2'], 'min_samples_split': [4], 'max_depth': [4, 6, 10, 15], 'min_samples_leaf': [1, 2]},
+       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+       verbose=0)
+	0.00785545954438
+	RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
+            max_depth=15, max_features='log2', max_leaf_nodes=None,
+            min_samples_leaf=1, min_samples_split=4,
+            min_weight_fraction_leaf=0.0, n_estimators=6, n_jobs=1,
+            oob_score=False, random_state=None, verbose=0,
+            warm_start=False)
+	"""
