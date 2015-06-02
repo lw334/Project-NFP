@@ -175,7 +175,7 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
-	clf = clf(**kwargs)
+	#clf = clf(**kwargs) ################
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
 	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
@@ -186,7 +186,7 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	y_test = np.ravel(test_df[y_col].astype(np.float))
 	# train and test
 	begin_train = time()
-	clf.fit(X_train, y_train)
+	model = clf.fit(X_train, y_train)
 	end_train = time()
 	begin_test = time()
 	y_pred = clf.predict(X_test)
@@ -194,19 +194,20 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	y_pred_proba = clf.predict_proba(X_test)
 	train_time = end_train - begin_train
 	test_time = end_test - begin_test
-	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time
+	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time, model
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
 	'''generate evaluation results'''
-	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve
+	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve, average_precision_score
 	rv = {}
 	y_pred_new = applythreshold(y_pred_prob, threshold)
 	rv["accuracy"] = str(np.mean(y == y_pred_new))
 	rv["precision"] = str(precision_score(y, y_pred_new))
 	rv["recall"] = str(recall_score(y, y_pred_new))
 	rv["f1"] = str(f1_score(y, y_pred_new))#maybe remove labels=[0,1]
-	rv["auc_roc"] = str(roc_auc_score(y, y_pred_new))
+	rv["auc_roc"] = str(roc_auc_score(y, y_pred_prob))
+	rv["average_precision_score"] = str(average_precision_score(y,y_pred_prob))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
 	#rv["auc_roc"] = str(auc(fpr, tpr))
@@ -257,7 +258,7 @@ def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_val
 	temp = []
 	classifier_name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
 	combs = value_combinations(dic_param_vals)
-	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision_score","train_time","test_time"])
 	results = pd.DataFrame(columns=metrics)
 	for comb in combs:
 		y_pred, y_pred_prob, y_test, time_train, time_test = run_cv(train_df, test_df, x_cols, y_col, classifier, **comb)
@@ -269,6 +270,23 @@ def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_val
 			results.loc[name] = evaluation_result
 	results.sort(columns=criterion,ascending=False)
 	return results
+
+def plot_dt(model,feature_list):
+	import matplotlib.pyplot as plt
+ 	from pprint import pprint
+ 	import numpy as np
+ 	from sklearn.externals.six import StringIO
+ 	from sklearn import tree
+	import pydot
+ 	from sklearn.externals import joblib
+	from IPython.display import Image
+	#model_location = model['model_location']
+	#fitted_model = joblib.load(os.path.join(model_path, 'model', model_location))
+	dot_data = StringIO()
+	tree.export_graphviz(model, out_file=dot_data, feature_names =feature_list)
+	graph = pydot.graph_from_dot_data(dot_data.getvalue())
+	graph.write_png("temp.png")
+	return #Image("temp.png")
 
 if __name__ == '__main__':
 
@@ -284,7 +302,10 @@ if __name__ == '__main__':
 	"Spanish", "highest_educ","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
 	"NURSE_0_YEAR_NURSING_EXPERIENCE","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
-	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
+	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases",
+	"govt_financial_assistance", "govt_crisis_intervention", "govt_substance_abuse", 
+	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",
+	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse",  "AgeRatioIntake"]
 
 	NANCOLS_CAT_BINARY = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
@@ -301,11 +322,14 @@ if __name__ == '__main__':
 	"chronic_vaginal_infection_sti","genetic_disease_congenital_anomalies",
 	"mental_health","other_diseases","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
-	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases"]
+	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases",
+	"govt_financial_assistance", "govt_crisis_intervention", "govt_substance_abuse", 
+	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",
+	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse",  "AgeRatioIntake", "CLIENT_HEALTH_BELIEF_AVG"]
 
 	NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
 	"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-	"NURSE_0_YEAR_NURSING_EXPERIENCE"]
+	"NURSE_0_YEAR_NURSING_EXPERIENCE","NurseAgeIntake", "AgeRatioIntake"]
 
 	CATEGORICAL = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
@@ -332,7 +356,7 @@ if __name__ == '__main__':
 	"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
 	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1",
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
-	"PrimRole","SecRole"]
+	"PrimRole","SecRole", "CLIENT_HEALTH_BELIEF_AVG"]
 	
 	CATEGORICAL_2 = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
@@ -341,7 +365,7 @@ if __name__ == '__main__':
 	"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
 	"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
 	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE",
-	"PrimRole","SecRole"]
+	"PrimRole","SecRole", "CLIENT_HEALTH_BELIEF_AVG"]
 
 	BOOLEAN = ["nicu", "premature", "lbw", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", "CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
@@ -353,15 +377,18 @@ if __name__ == '__main__':
 	"chronic_urinary_tract_infection","chronic_vaginal_infection_sti","genetic_disease_congenital_anomalies",
 	"mental_health","other_diseases","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative",
-	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white"]
+	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white", "govt_financial_assistance", "govt_crisis_intervention", "govt_substance_abuse", 
+	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse"]
 
 	#upload data
-	input_file = "project_data10.csv"
+	input_file = "project_data12.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
 	# maybe delete this variable 
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
+	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
+
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
@@ -386,7 +413,8 @@ if __name__ == '__main__':
 	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
 	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
 	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
-	df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973")
+	#df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973") ##########UNCOMMENT/FIX 
+	#df = fill_str(df, "edd_enrollment_interval_weeks", 0) #######THIS NEEDS TO BE FIXED
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	get_month(df, TIME)
@@ -402,9 +430,49 @@ if __name__ == '__main__':
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"]
-	cols_to_drop_2 = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	cols_to_drop_2 = ["client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate","SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
+	"EndDate","HireDate",'SERVICE_USE_0_OTHER1_DESC',
+  	'SERVICE_USE_0_OTHER2_DESC',
+  	'SERVICE_USE_0_OTHER3_DESC',
+  	'SERVICE_USE_0_TANF_CLIENT',
+  	'SERVICE_USE_0_FOODSTAMP_CLIENT',
+  	'SERVICE_USE_0_SOCIAL_SECURITY_CL',
+  	'SERVICE_USE_0_UNEMPLOYMENT_CLIEN',
+  	'SERVICE_USE_0_IPV_CLIENT',
+  	'SERVICE_USE_0_CPS_CHILD',
+  	'SERVICE_USE_0_MENTAL_CLIENT',
+  	'SERVICE_USE_0_SMOKE_CLIENT',
+  	'SERVICE_USE_0_ALCOHOL_ABUSE_CLIE',
+  	'SERVICE_USE_0_DRUG_ABUSE_CLIENT',
+  	'SERVICE_USE_0_MEDICAID_CLIENT',
+  	'SERVICE_USE_0_MEDICAID_CHILD',
+  	'SERVICE_USE_0_SCHIP_CLIENT',
+  	'SERVICE_USE_0_SCHIP_CHILD',
+  	'SERVICE_USE_0_SPECIAL_NEEDS_CHIL',
+  	'SERVICE_USE_0_PCP_CLIENT',
+  	'SERVICE_USE_0_PCP_WELL_CHILD',
+  	'SERVICE_USE_0_DEVELOPMENTAL_DISA',
+  	'SERVICE_USE_0_WIC_CLIENT',
+  	'SERVICE_USE_0_CHILD_CARE_CLIENT',
+  	'SERVICE_USE_0_JOB_TRAINING_CLIEN',
+  	'SERVICE_USE_0_HOUSING_CLIENT',
+  	'SERVICE_USE_0_TRANSPORTATION_CLI',
+  	'SERVICE_USE_0_PREVENT_INJURY_CLI',
+  	'SERVICE_USE_0_BIRTH_EDUC_CLASS_C',
+  	'SERVICE_USE_0_LACTATION_CLIENT',
+  	'SERVICE_USE_0_GED_CLIENT',
+  	'SERVICE_USE_0_HIGHER_EDUC_CLIENT',
+  	'SERVICE_USE_0_CHARITY_CLIENT',
+  	'SERVICE_USE_0_LEGAL_CLIENT',
+  	'SERVICE_USE_0_OTHER1',
+  	'SERVICE_USE_0_OTHER2',
+  	'SERVICE_USE_0_OTHER3',
+  	'SERVICE_USE_0_PRIVATE_INSURANCE_',
+  	'SERVICE_USE_0_PRIVATE_INSURANCE1',
+  	'Nurse_ID',
+  	'NURSE_0_BIRTH_YEAR']
+  	col_to_drop_old = ["SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
 	"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
 	"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
 	"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
@@ -421,7 +489,10 @@ if __name__ == '__main__':
 	"SERVICE_USE_0_GED_CLIENT","SERVICE_USE_0_HIGHER_EDUC_CLIENT",
 	"SERVICE_USE_0_CHARITY_CLIENT","SERVICE_USE_0_LEGAL_CLIENT","SERVICE_USE_0_OTHER1",
 	"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
-	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1"]
+	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1"] 
+	'''"Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
+	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
+	"EndDate","HireDate"]'''
 
 
 	################################ if split by year #################################################
@@ -448,23 +519,31 @@ if __name__ == '__main__':
 		df_mind_train= fill_mode(df_mind_train,col_name)
 		df_mind_test= fill_mode(df_mind_test,col_name)
 
+	df_mind_train.drop("edd_enrollment_interval_weeks", axis=1, inplace=True)
+	df_mind_test.drop("edd_enrollment_interval_weeks", axis=1, inplace=True) 
 	for col_name in NUMERICAL:
-		df_mind_train = fill_median(df_mind_train,col_name)
-		df_mind_test = fill_median(df_mind_test,col_name)
+		if col_name != 'edd_enrollment_interval_weeks':
+			df_mind_train = fill_median(df_mind_train,col_name)
+			df_mind_test = fill_median(df_mind_test,col_name)
 
+	
 	# Transforming features 
-	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL) #CAN change to CATEGORICAL_2
-	df_test = cat_to_bi_test(df_mind_test,CATEGORICAL,df_mind_train)
+	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL_2) ####HERE CHANGE BACK TO CATEGORICAL_2
+	df_test = cat_to_bi_test(df_mind_test,CATEGORICAL_2,df_mind_train)
 
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
+
+	##################### THIS ALL NEEDS TO BE FIXED!!!
+	####################
+	##### This fills edd in test set with zero - this should be filled with actual values 
 
 	# df_train = pd.DataFrame.from_csv("train_1.csv")
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
 
 	# Models
 	# Set dependent and independent variables ####CAN CHANGE TO cols_to_drop_2
-	for col in cols_to_drop:
+	for col in cols_to_drop_2:####HERE CHANGE BACK TO cols_to_drop
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
 
@@ -494,85 +573,63 @@ if __name__ == '__main__':
 	randomforest = RFC(n_estimators=10, max_features="log2", max_depth=6)
 	other_randomforest = RFC(bootstrap=True, criterion='gini',max_depth=15, max_features='log2', max_leaf_nodes=None,min_samples_leaf=1, min_samples_split=4, n_estimators=6)
 	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
-	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=6)
+	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=50)
 	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
 	bagging = BC(n_estimators=15, max_samples=0.5, max_features=0.5)
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=150, learning_rate=0.05)
 
 	#classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
-	classifiers = [LR, KNC, RFC, DTC, BC, GBC]
-
+	classifiers = [LR, KNC, RFC, BC, GBC]#DTC
+	#classifiers = [decisiontree]
+	
 	'''
-	####################GRIDSEARCH FOR BEST PARAMETERS
-	
-	from sklearn.grid_search import GridSearchCV
-	# create and fit a ridge regression model
-	model = logit #randomforest, bagging, boosting
-	score_func = accuracy_score
-	#for logit
-	params = {'penalty': ['l2','l1'],'C': [0.0001, 0.001, 0.01, 0.5, 1, 10, 100, 1000]}
-	#for randomforest
-	#params = {'n_estimators': [6,10,20,30,50,100], 'max_features': ["log2", "sqrt"], 'max_depth':[4,6,10,15], 'min_samples_split':[4], 'min_samples_leaf':[1,2]}
-	#for bagging
-	#params = {'n_estimators':[5,10,15,20,30], 'max_samples':[1.0], 'max_features':[1,2], 'bootstrap': [True, False], 'bootstrap_features': [False, True]}
-	#for boosting
-	#params = {'loss': ['deviance', 'exponential'], 'learning_rate':[0.1, 0.2, 0.5, 1.0], 'n_estimators':[20,50,100,200,300], 'subsample':[0.2,0.5,1.0], 'min_samples_split':[1,2,4], 'min_samples_leaf':[1,2], 'min_weight_fraction_leaf':[0.0,0.2], 'max_depth':[2,3,5]}
-	grid = GridSearchCV(estimator=model, param_grid=params, cv=2, scoring="f1")
-	X = df_train[x_cols]
-	y = df_train[y_col]
-	# normalization
-	X= np.array(X.as_matrix().astype(np.float))
-	#X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
-	y = np.ravel(y.astype(np.float))
-	#y_test = np.ravel(test_df[y_col].astype(np.float))
-	grid.fit(X, y)
-	print(grid)
-	# summarize the results of the grid search
-	print(grid.best_score_)
-	print(grid.best_estimator_)
 
-	'''
-	
-	# metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
-	# evaluation_result = pd.DataFrame(columns=metrics)
-	# for classifier in classifiers:
-	# 	y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
-	# 	name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-	# 	dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
-	# 	# print name, conf_matrix
-	# 	evaluation_result.loc[name] = dic
-	# 	p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
-	# baseline = str(1-df_test.describe()[y_col]["mean"])
-	# baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
-	# evaluation_result.loc["baseline"] = baseline_dict
-	# ### OUTPUT EVALUATION TABLE
-	# print evaluation_result
-
-
-	import itertools as iter
-	dic_param_vals = {
-		LR:{"C":[0.01, 0.1, 1.0, 10.0]},
-		KNC:{"n_neighbors":[5, 10, 15]},
-		LSVC:{"C":[0.1, 1.0, 10.0]},
-		RFC:{"n_estimators":[5, 10, 15], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
-		DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
-		BC:{"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
-		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]}
-	}
-	
-	list_threshold = np.arange(0.3,0.4,0.05)
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
-	for classifier in classifiers:	
-		results = select_parameter(df_train, df_test, classifier, x_cols, y_col, dic_param_vals[classifier], list_threshold, "f1")
-		evaluation_result = evaluation_result.append(results)
+	for classifier in classifiers:
+		y_pred, y_pred_prob, y_true, train_time, test_time, model = run_cv(df_train, df_test, x_cols, y_col, classifier)
+		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
+		# print name, conf_matrix
+		evaluation_result.loc[name] = dic
+		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	print evaluation_result
 
+	plot_dt(model,x_cols)
+
+	'''
+
+	import itertools as iter
+	dic_param_vals = {
+		LR:{"C":[0.01, 0.1, 1.0, 10.0]},
+		KNC:{"n_neighbors":[5, 10, 15]},
+		#LSVC:{"C":[0.1, 1.0, 10.0]},
+		RFC:{"n_estimators":[10, 20, 50], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
+		#DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
+		BC:{"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
+		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]}
+	}
+	
+	list_threshold = np.arange(0.3,0.4,0.05)
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision_score","train_time","test_time"])#"auc_prc"
+	evaluation_result = pd.DataFrame(columns=metrics)
+	for classifier in classifiers:	
+		#try:
+		results = select_parameter(df_train, df_test, classifier, x_cols, y_col, dic_param_vals[classifier], list_threshold, "f1")
+		#except:
+		#	print 
+		evaluation_result = evaluation_result.append(results)
+	baseline = str(1-df_test.describe()[y_col]["mean"])
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0,0])))
+	evaluation_result.loc["baseline"] = baseline_dict
+	### OUTPUT EVALUATION TABLE
+	evaluation_result.to_csv("parametergridsearch.csv")
+	
 
 	'''
 	################################ if split the sorted dataframe evenly ##################################
