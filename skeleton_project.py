@@ -204,7 +204,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	rv["accuracy"] = str(np.mean(y == y_pred_new))
 	rv["precision"] = str(precision_score(y, y_pred_new))
 	rv["recall"] = str(recall_score(y, y_pred_new))
-	rv["f1"] = str(f1_score(y, y_pred_new, labels=[0, 1]))
+	rv["f1"] = str(f1_score(y, y_pred_new))#maybe remove labels=[0,1]
 	rv["auc_roc"] = str(roc_auc_score(y, y_pred_new))
 	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
 	# plot_eval_curve(fpr, tpr, name, "roc")
@@ -453,6 +453,7 @@ if __name__ == '__main__':
 	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
 	#randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
 	randomforest = RFC(n_estimators=10, max_features="log2", max_depth=6)
+	other_randomforest = RFC(bootstrap=True, criterion='gini',max_depth=15, max_features='log2', max_leaf_nodes=None,min_samples_leaf=1, min_samples_split=4, n_estimators=6)
 	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
 	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=6)
 	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
@@ -460,7 +461,7 @@ if __name__ == '__main__':
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=150, learning_rate=0.05)
 	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
+	classifiers = [other_randomforest]#[logit, neighb, randomforest, decisiontree, bagging, boosting]
 
 	'''
 	####################GRIDSEARCH FOR BEST PARAMETERS
@@ -492,7 +493,7 @@ if __name__ == '__main__':
 	print(grid.best_estimator_)
 
 	'''
-	
+
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
