@@ -43,9 +43,9 @@ def bar_chart(dataframe,col_title):
 	dataframe_cols = df[col_title]
 	bar = pd.value_counts(dataframe_cols).plot(kind='bar',title=col_title)
 	name = col_title + ".png"
-	plt.savefig(name)
-	#plt.rcParams.update({'font.size': 12})
+	# plt.rcParams.update({'font.size': 12})
 	# plt.subplots_adjust(bottom=0.4)
+	plt.savefig(name)
 	return bar
 
 	# data preprocessing
@@ -171,10 +171,11 @@ def sequential_cv_index(df_len, num_moves, total_pct, train_pct):
 		rv.append((train_index, test_index))
 	return rv
 
-def run_cv(train_df, test_df, x_cols, y_col, clf):
+def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
+	clf = clf(**kwargs)
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
 	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
@@ -232,6 +233,42 @@ def precision_recall_curve(y_true, y_pred_prob, model_name):
 	#plt.show()
 	return graph
 
+def value_combinations(dic):
+	'''
+	Takes a dictionary which maps from parameter name to a list of possible
+	values, and returns a list of all possible dictionaries. Each dictionary 
+	maps from parameter name to one particular value.
+	'''
+	rv = []
+	key = []
+	vals = []
+	for item in dic.items():
+		key.append(item[0])
+		vals.append(item[1])
+	combs = iter.product(*vals)
+	for comb in combs:
+		temp = {}
+		for i in range(len(key)):
+			temp[key[i]] = comb[i]
+		rv.append(temp)
+	return rv
+
+def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_vals, list_threshold, criterion, **kwargs):
+	temp = []
+	classifier_name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+	combs = value_combinations(dic_param_vals)
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])
+	results = pd.DataFrame(columns=metrics)
+	for comb in combs:
+		y_pred, y_pred_prob, y_test, time_train, time_test = run_cv(train_df, test_df, x_cols, y_col, classifier, **comb)
+		for threshold in list_threshold:
+			name = classifier_name+"_"+str(comb)+"_"+str(threshold)
+			evaluation_result, conf_matrix = evaluate(name, y_test, y_pred, y_pred_prob, time_train, time_test, threshold)
+			print name
+			print conf_matrix
+			results.loc[name] = evaluation_result
+	results.sort(columns=criterion,ascending=False)
+	return results
 
 if __name__ == '__main__':
 
@@ -332,9 +369,11 @@ if __name__ == '__main__':
 	pd.value_counts(df.premature).plot(kind='bar')
 	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
 	for col in col_names:
+		plt.clf()
 		bar_chart(df,col)
 	first_graph = df[NUMERICAL]
 	bin_no = 40
+	plt.clf()
 	first = dist(first_graph, bin_no, "dist_1.png")
 	plt.savefig("dist_1.png")
 	#plt.show()
@@ -392,8 +431,8 @@ if __name__ == '__main__':
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2009 #2007
-	last_test_year = 2010 #2008
+	last_train_year = 2009 #2007, 2008, 2009
+	last_test_year = 2012 #2008, 2009, 2012
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -460,8 +499,9 @@ if __name__ == '__main__':
 	bagging = BC(n_estimators=15, max_samples=0.5, max_features=0.5)
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=150, learning_rate=0.05)
-	#classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
-	classifiers = [other_randomforest]#[logit, neighb, randomforest, decisiontree, bagging, boosting]
+
+	#classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
+	classifiers = [LR, KNC, RFC, DTC, BC, GBC]
 
 	'''
 	####################GRIDSEARCH FOR BEST PARAMETERS
@@ -493,16 +533,40 @@ if __name__ == '__main__':
 	print(grid.best_estimator_)
 
 	'''
+	
+	# metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
+	# evaluation_result = pd.DataFrame(columns=metrics)
+	# for classifier in classifiers:
+	# 	y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
+	# 	name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+	# 	dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
+	# 	# print name, conf_matrix
+	# 	evaluation_result.loc[name] = dic
+	# 	p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
+	# baseline = str(1-df_test.describe()[y_col]["mean"])
+	# baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	# evaluation_result.loc["baseline"] = baseline_dict
+	# ### OUTPUT EVALUATION TABLE
+	# print evaluation_result
 
+
+	import itertools as iter
+	dic_param_vals = {
+		LR:{"C":[0.01, 0.1, 1.0, 10.0]},
+		KNC:{"n_neighbors":[5, 10, 15]},
+		LSVC:{"C":[0.1, 1.0, 10.0]},
+		RFC:{"n_estimators":[5, 10, 15], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
+		DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
+		BC:{"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
+		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]}
+	}
+	
+	list_threshold = np.arange(0.3,0.4,0.05)
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
-	for classifier in classifiers:
-		y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
-		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
-		# print name, conf_matrix
-		evaluation_result.loc[name] = dic
-		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
+	for classifier in classifiers:	
+		results = select_parameter(df_train, df_test, classifier, x_cols, y_col, dic_param_vals[classifier], list_threshold, "f1")
+		evaluation_result = evaluation_result.append(results)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
