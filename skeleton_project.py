@@ -289,8 +289,10 @@ def plot_dt(model,feature_list):
 	return #Image("temp.png")
 
 def create_match_feature(col_matching, col_to_match, varname, df):
+	df = binary_transform(df,[col_matching, col_to_match])
 	df[varname] = (df[col_matching] != df[col_to_match])
 	df = binary_transform(df, [varname])
+	df[varname] = np.where(df[varname]==1,0,1)
 	return df
 
 def get_ab_difference(col, sub_col, varname, df):
@@ -389,7 +391,7 @@ if __name__ == '__main__':
 	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse"]
 
 	#upload data
-	input_file = "/Users/weiwei/Desktop/project_data12.csv"
+	input_file = "project_data12.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
@@ -437,10 +439,11 @@ if __name__ == '__main__':
 	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
 	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
 	get_dummy_dates(df,"leftbeforebirth")
-	create_match_feature("English", "nurse_English", "EnglishNonMatch", df)
-	create_match_feature("Spanish", "nurse_Spanish", "SpanishNonMatch", df)
+	create_match_feature("English", "nurse_English", "EnglishMatch", df)
+	create_match_feature("Spanish", "nurse_Spanish", "SpanishMatch", df)
 	get_ab_difference("age_intake_years", "NurseAgeIntake", "MotherNurseAgeDiff", df)
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishNonMatch", "SpanishNonMatch", "MotherNurseAgeDiff"]
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishMatch", "SpanishMatch", "MotherNurseAgeDiff",
+	"whiteMatch", "hispanicMatch", "blackMatch"]
 
 	#drop the time variables after extracting dates (years and months)
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
@@ -550,6 +553,15 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
+
+	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_train)
+	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_train)
+	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_train)
+
+
+	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_test)
+	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_test)
+	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_test)
 	##################### THIS ALL NEEDS TO BE FIXED!!!
 	####################
 	##### This fills edd in test set with zero - this should be filled with actual values 
