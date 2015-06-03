@@ -413,8 +413,8 @@ if __name__ == '__main__':
 	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
 	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
 	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
-	#df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973") ##########UNCOMMENT/FIX 
-	#df = fill_str(df, "edd_enrollment_interval_weeks", 0) #######THIS NEEDS TO BE FIXED
+	df = fill_str(df, "NURSE_0_BIRTH_YEAR", 1963)
+	df = fill_str(df, "edd_enrollment_interval_weeks", 21.7) 
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	get_month(df, TIME)
