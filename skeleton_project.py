@@ -589,13 +589,13 @@ if __name__ == '__main__':
 
 	################################ if split by year #################################################
 	#split data into training and test
-	last_train_year = 2012 #so means test_df starts from 2010
+	last_train_year = 2009 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2009 #2007, 2008, 2009
-	last_test_year = 2012 #2008, 2009, 2012
+	last_train_year = 2008 #2007, 2008, 2009
+	last_test_year = 2009 #2008, 2009, 2012
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -637,9 +637,6 @@ if __name__ == '__main__':
 	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_test)
 	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_test)
 	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_test)
-	##################### THIS ALL NEEDS TO BE FIXED!!!
-	####################
-	##### This fills edd in test set with zero - this should be filled with actual values 
 
 	# df_train = pd.DataFrame.from_csv("train_1.csv")
 	# df_test = pd.DataFrame.from_csv("test_1.csv")
@@ -687,7 +684,7 @@ if __name__ == '__main__':
 	#classifiers = [decisiontree]
 	
 	'''
-
+	###REMEMBER TO RUN run_cv_parameters_set when doing decision tree plot!
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -811,29 +808,3 @@ if __name__ == '__main__':
 	### OUTPUT EVALUATION TABLE
 	# print evaluation_result
 	'''
-
-	"""
-	RESULTS OF PARAMETER search
-	GridSearchCV(cv=2,
-	   estimator=LogisticRegression(C=1, class_weight=None, dual=False, fit_intercept=True,
-		  intercept_scaling=1, penalty='l2', random_state=None, tol=0.0001),
-	   fit_params={}, iid=True, loss_func=None, n_jobs=1,
-	   param_grid={'penalty': ['l2', 'l1'], 'C': [0.0001, 0.001, 0.01]},
-	   pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
-	   verbose=0)
-	0.00650781799647 (f1_score)
-	LogisticRegression(C=0.0001, class_weight=None, dual=False,
-		  fit_intercept=True, intercept_scaling=1, penalty='l2',
-		  random_state=None, tol=0.0001)
-
-		   param_grid={'n_estimators': [6, 10, 20, 30, 50, 100], 'max_features': ['log2'], 'min_samples_split': [4], 'max_depth': [4, 6, 10, 15], 'min_samples_leaf': [1, 2]},
-	   pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
-	   verbose=0)
-	0.00785545954438
-	RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
-			max_depth=15, max_features='log2', max_leaf_nodes=None,
-			min_samples_leaf=1, min_samples_split=4,
-			min_weight_fraction_leaf=0.0, n_estimators=6, n_jobs=1,
-			oob_score=False, random_state=None, verbose=0,
-			warm_start=False)
-	"""
