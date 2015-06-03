@@ -273,12 +273,12 @@ def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_val
 
 def plot_dt(model,feature_list):
 	import matplotlib.pyplot as plt
- 	from pprint import pprint
- 	import numpy as np
- 	from sklearn.externals.six import StringIO
- 	from sklearn import tree
+	from pprint import pprint
+	import numpy as np
+	from sklearn.externals.six import StringIO
+	from sklearn import tree
 	import pydot
- 	from sklearn.externals import joblib
+	from sklearn.externals import joblib
 	from IPython.display import Image
 	#model_location = model['model_location']
 	#fitted_model = joblib.load(os.path.join(model_path, 'model', model_location))
@@ -288,51 +288,62 @@ def plot_dt(model,feature_list):
 	graph.write_png("temp.png")
 	return #Image("temp.png")
 
+
+def create_match_feature(col_matching, col_to_match, varname, df):
+	df = binary_transform(df,[col_matching, col_to_match])
+	df[varname] = (df[col_matching] != df[col_to_match])
+	df = binary_transform(df, [varname])
+	df[varname] = np.where(df[varname]==1,0,1)
+	return df
+
+def get_ab_difference(col, sub_col, varname, df):
+	df[varname] = np.abs(df[col] - df[sub_col])
+
 	# Plot precision/recall/n
 def plot_precision_recall_n(model):
-    # Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
-    precision_curve = model['precision_curve'][:-1]
-    recall_curve = model['recall_curve'][:-1]
-    pr_thresholds = model['pr_thresholds']
-    y_score = model['y_score']
-    
-    pct_above_per_thresh = []
-    number_scored = len(y_score)
-    for value in pr_thresholds:
-        num_above_thresh = len(y_score[y_score>=value])
-        pct_above_thresh = num_above_thresh / number_scored
-        pct_above_per_thresh.append(pct_above_thresh)
-    pct_above_per_thresh = np.array(pct_above_per_thresh)
-    
-    fig, ax1 = plt.subplots()
-    ax1.plot(pct_above_per_thresh, precision_curve, 'b')
-    ax1.set_xlabel('percent of population')
-    ax1.set_ylabel('precision', color='b')
-    ax2 = ax1.twinx()
-    ax2.plot(pct_above_per_thresh, recall_curve, 'r')
-    ax2.set_ylabel('recall', color='r')
-    ax1.grid(True)
-    ax2.grid(True)
-    plt.show()
+	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
+	precision_curve = model['precision_curve'][:-1]
+	recall_curve = model['recall_curve'][:-1]
+	pr_thresholds = model['pr_thresholds']
+	y_score = model['y_score']
+	
+	pct_above_per_thresh = []
+	number_scored = len(y_score)
+	for value in pr_thresholds:
+		num_above_thresh = len(y_score[y_score>=value])
+		pct_above_thresh = num_above_thresh / number_scored
+		pct_above_per_thresh.append(pct_above_thresh)
+	pct_above_per_thresh = np.array(pct_above_per_thresh)
+	
+	fig, ax1 = plt.subplots()
+	ax1.plot(pct_above_per_thresh, precision_curve, 'b')
+	ax1.set_xlabel('percent of population')
+	ax1.set_ylabel('precision', color='b')
+	ax2 = ax1.twinx()
+	ax2.plot(pct_above_per_thresh, recall_curve, 'r')
+	ax2.set_ylabel('recall', color='r')
+	ax1.grid(True)
+	ax2.grid(True)
+	plt.show()
 
 	# Plot precision/recall/threshold
 def plot_precision_recall_thresh(model):
-    # Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
-    precision_curve = model['precision_curve'][:-1]
-    recall_curve = model['recall_curve'][:-1]
-    pr_thresholds = model['pr_thresholds']
-    y_score = model['y_score']
-    
-    fig, ax1 = plt.subplots()
-    ax1.plot(pr_thresholds, precision_curve, 'b')
-    ax1.set_xlabel('pr_threshold')
-    ax1.set_ylabel('precision', color='b')
-    ax2 = ax1.twinx()
-    ax2.plot(pr_thresholds, recall_curve, 'r')
-    ax2.set_ylabel('recall', color='r')
-    ax1.grid(True)
-    ax2.grid(True)
-    plt.show()
+	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
+	precision_curve = model['precision_curve'][:-1]
+	recall_curve = model['recall_curve'][:-1]
+	pr_thresholds = model['pr_thresholds']
+	y_score = model['y_score']
+	
+	fig, ax1 = plt.subplots()
+	ax1.plot(pr_thresholds, precision_curve, 'b')
+	ax1.set_xlabel('pr_threshold')
+	ax1.set_ylabel('precision', color='b')
+	ax2 = ax1.twinx()
+	ax2.plot(pr_thresholds, recall_curve, 'r')
+	ax2.set_ylabel('recall', color='r')
+	ax1.grid(True)
+	ax2.grid(True)
+	plt.show()
 
 if __name__ == '__main__':
 
@@ -435,6 +446,11 @@ if __name__ == '__main__':
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
 
+
+
+
+
+
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
@@ -459,8 +475,8 @@ if __name__ == '__main__':
 	df = fill_str(df, "EarliestCourse", "2014-06-13 00:00:00")
 	df = fill_str(df, "EndDate", "2010-12-06 00:00:00")
 	df = fill_str(df, "HireDate", "2008-01-02 00:00:00")
-	#df = fill_str(df, "NURSE_0_BIRTH_YEAR", "1973") ##########UNCOMMENT/FIX 
-	#df = fill_str(df, "edd_enrollment_interval_weeks", 0) #######THIS NEEDS TO BE FIXED
+	df = fill_str(df, "NURSE_0_BIRTH_YEAR", 1963)
+	df = fill_str(df, "edd_enrollment_interval_weeks", 21.7) 
 	change_time_var(df,TIME)
 	get_year(df, TIME)
 	get_month(df, TIME)
@@ -470,7 +486,11 @@ if __name__ == '__main__':
 	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
 	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
 	get_dummy_dates(df,"leftbeforebirth")
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
+	create_match_feature("English", "nurse_English", "EnglishMatch", df)
+	create_match_feature("Spanish", "nurse_Spanish", "SpanishMatch", df)
+	get_ab_difference("age_intake_years", "NurseAgeIntake", "MotherNurseAgeDiff", df)
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishMatch", "SpanishMatch", "MotherNurseAgeDiff",
+	"whiteMatch", "hispanicMatch", "blackMatch"]
 
 	#drop the time variables after extracting dates (years and months)
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
@@ -479,46 +499,46 @@ if __name__ == '__main__':
 	cols_to_drop_2 = ["client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate",'SERVICE_USE_0_OTHER1_DESC',
-  	'SERVICE_USE_0_OTHER2_DESC',
-  	'SERVICE_USE_0_OTHER3_DESC',
-  	'SERVICE_USE_0_TANF_CLIENT',
-  	'SERVICE_USE_0_FOODSTAMP_CLIENT',
-  	'SERVICE_USE_0_SOCIAL_SECURITY_CL',
-  	'SERVICE_USE_0_UNEMPLOYMENT_CLIEN',
-  	'SERVICE_USE_0_IPV_CLIENT',
-  	'SERVICE_USE_0_CPS_CHILD',
-  	'SERVICE_USE_0_MENTAL_CLIENT',
-  	'SERVICE_USE_0_SMOKE_CLIENT',
-  	'SERVICE_USE_0_ALCOHOL_ABUSE_CLIE',
-  	'SERVICE_USE_0_DRUG_ABUSE_CLIENT',
-  	'SERVICE_USE_0_MEDICAID_CLIENT',
-  	'SERVICE_USE_0_MEDICAID_CHILD',
-  	'SERVICE_USE_0_SCHIP_CLIENT',
-  	'SERVICE_USE_0_SCHIP_CHILD',
-  	'SERVICE_USE_0_SPECIAL_NEEDS_CHIL',
-  	'SERVICE_USE_0_PCP_CLIENT',
-  	'SERVICE_USE_0_PCP_WELL_CHILD',
-  	'SERVICE_USE_0_DEVELOPMENTAL_DISA',
-  	'SERVICE_USE_0_WIC_CLIENT',
-  	'SERVICE_USE_0_CHILD_CARE_CLIENT',
-  	'SERVICE_USE_0_JOB_TRAINING_CLIEN',
-  	'SERVICE_USE_0_HOUSING_CLIENT',
-  	'SERVICE_USE_0_TRANSPORTATION_CLI',
-  	'SERVICE_USE_0_PREVENT_INJURY_CLI',
-  	'SERVICE_USE_0_BIRTH_EDUC_CLASS_C',
-  	'SERVICE_USE_0_LACTATION_CLIENT',
-  	'SERVICE_USE_0_GED_CLIENT',
-  	'SERVICE_USE_0_HIGHER_EDUC_CLIENT',
-  	'SERVICE_USE_0_CHARITY_CLIENT',
-  	'SERVICE_USE_0_LEGAL_CLIENT',
-  	'SERVICE_USE_0_OTHER1',
-  	'SERVICE_USE_0_OTHER2',
-  	'SERVICE_USE_0_OTHER3',
-  	'SERVICE_USE_0_PRIVATE_INSURANCE_',
-  	'SERVICE_USE_0_PRIVATE_INSURANCE1',
-  	'Nurse_ID',
-  	'NURSE_0_BIRTH_YEAR']
-  	col_to_drop_old = ["SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
+	'SERVICE_USE_0_OTHER2_DESC',
+	'SERVICE_USE_0_OTHER3_DESC',
+	'SERVICE_USE_0_TANF_CLIENT',
+	'SERVICE_USE_0_FOODSTAMP_CLIENT',
+	'SERVICE_USE_0_SOCIAL_SECURITY_CL',
+	'SERVICE_USE_0_UNEMPLOYMENT_CLIEN',
+	'SERVICE_USE_0_IPV_CLIENT',
+	'SERVICE_USE_0_CPS_CHILD',
+	'SERVICE_USE_0_MENTAL_CLIENT',
+	'SERVICE_USE_0_SMOKE_CLIENT',
+	'SERVICE_USE_0_ALCOHOL_ABUSE_CLIE',
+	'SERVICE_USE_0_DRUG_ABUSE_CLIENT',
+	'SERVICE_USE_0_MEDICAID_CLIENT',
+	'SERVICE_USE_0_MEDICAID_CHILD',
+	'SERVICE_USE_0_SCHIP_CLIENT',
+	'SERVICE_USE_0_SCHIP_CHILD',
+	'SERVICE_USE_0_SPECIAL_NEEDS_CHIL',
+	'SERVICE_USE_0_PCP_CLIENT',
+	'SERVICE_USE_0_PCP_WELL_CHILD',
+	'SERVICE_USE_0_DEVELOPMENTAL_DISA',
+	'SERVICE_USE_0_WIC_CLIENT',
+	'SERVICE_USE_0_CHILD_CARE_CLIENT',
+	'SERVICE_USE_0_JOB_TRAINING_CLIEN',
+	'SERVICE_USE_0_HOUSING_CLIENT',
+	'SERVICE_USE_0_TRANSPORTATION_CLI',
+	'SERVICE_USE_0_PREVENT_INJURY_CLI',
+	'SERVICE_USE_0_BIRTH_EDUC_CLASS_C',
+	'SERVICE_USE_0_LACTATION_CLIENT',
+	'SERVICE_USE_0_GED_CLIENT',
+	'SERVICE_USE_0_HIGHER_EDUC_CLIENT',
+	'SERVICE_USE_0_CHARITY_CLIENT',
+	'SERVICE_USE_0_LEGAL_CLIENT',
+	'SERVICE_USE_0_OTHER1',
+	'SERVICE_USE_0_OTHER2',
+	'SERVICE_USE_0_OTHER3',
+	'SERVICE_USE_0_PRIVATE_INSURANCE_',
+	'SERVICE_USE_0_PRIVATE_INSURANCE1',
+	'Nurse_ID',
+	'NURSE_0_BIRTH_YEAR']
+	col_to_drop_old = ["SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
 	"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
 	"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
 	"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
@@ -580,6 +600,15 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
+
+	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_train)
+	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_train)
+	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_train)
+
+
+	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_test)
+	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_test)
+	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_test)
 	##################### THIS ALL NEEDS TO BE FIXED!!!
 	####################
 	##### This fills edd in test set with zero - this should be filled with actual values 
@@ -761,25 +790,25 @@ if __name__ == '__main__':
 	"""
 	RESULTS OF PARAMETER search
 	GridSearchCV(cv=2,
-       estimator=LogisticRegression(C=1, class_weight=None, dual=False, fit_intercept=True,
-          intercept_scaling=1, penalty='l2', random_state=None, tol=0.0001),
-       fit_params={}, iid=True, loss_func=None, n_jobs=1,
-       param_grid={'penalty': ['l2', 'l1'], 'C': [0.0001, 0.001, 0.01]},
-       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
-       verbose=0)
+	   estimator=LogisticRegression(C=1, class_weight=None, dual=False, fit_intercept=True,
+		  intercept_scaling=1, penalty='l2', random_state=None, tol=0.0001),
+	   fit_params={}, iid=True, loss_func=None, n_jobs=1,
+	   param_grid={'penalty': ['l2', 'l1'], 'C': [0.0001, 0.001, 0.01]},
+	   pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+	   verbose=0)
 	0.00650781799647 (f1_score)
 	LogisticRegression(C=0.0001, class_weight=None, dual=False,
-          fit_intercept=True, intercept_scaling=1, penalty='l2',
-          random_state=None, tol=0.0001)
+		  fit_intercept=True, intercept_scaling=1, penalty='l2',
+		  random_state=None, tol=0.0001)
 
-	       param_grid={'n_estimators': [6, 10, 20, 30, 50, 100], 'max_features': ['log2'], 'min_samples_split': [4], 'max_depth': [4, 6, 10, 15], 'min_samples_leaf': [1, 2]},
-       pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
-       verbose=0)
+		   param_grid={'n_estimators': [6, 10, 20, 30, 50, 100], 'max_features': ['log2'], 'min_samples_split': [4], 'max_depth': [4, 6, 10, 15], 'min_samples_leaf': [1, 2]},
+	   pre_dispatch='2*n_jobs', refit=True, score_func=None, scoring='f1',
+	   verbose=0)
 	0.00785545954438
 	RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
-            max_depth=15, max_features='log2', max_leaf_nodes=None,
-            min_samples_leaf=1, min_samples_split=4,
-            min_weight_fraction_leaf=0.0, n_estimators=6, n_jobs=1,
-            oob_score=False, random_state=None, verbose=0,
-            warm_start=False)
+			max_depth=15, max_features='log2', max_leaf_nodes=None,
+			min_samples_leaf=1, min_samples_split=4,
+			min_weight_fraction_leaf=0.0, n_estimators=6, n_jobs=1,
+			oob_score=False, random_state=None, verbose=0,
+			warm_start=False)
 	"""
