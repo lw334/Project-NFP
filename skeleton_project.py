@@ -288,6 +288,52 @@ def plot_dt(model,feature_list):
 	graph.write_png("temp.png")
 	return #Image("temp.png")
 
+	# Plot precision/recall/n
+def plot_precision_recall_n(model):
+    # Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
+    precision_curve = model['precision_curve'][:-1]
+    recall_curve = model['recall_curve'][:-1]
+    pr_thresholds = model['pr_thresholds']
+    y_score = model['y_score']
+    
+    pct_above_per_thresh = []
+    number_scored = len(y_score)
+    for value in pr_thresholds:
+        num_above_thresh = len(y_score[y_score>=value])
+        pct_above_thresh = num_above_thresh / number_scored
+        pct_above_per_thresh.append(pct_above_thresh)
+    pct_above_per_thresh = np.array(pct_above_per_thresh)
+    
+    fig, ax1 = plt.subplots()
+    ax1.plot(pct_above_per_thresh, precision_curve, 'b')
+    ax1.set_xlabel('percent of population')
+    ax1.set_ylabel('precision', color='b')
+    ax2 = ax1.twinx()
+    ax2.plot(pct_above_per_thresh, recall_curve, 'r')
+    ax2.set_ylabel('recall', color='r')
+    ax1.grid(True)
+    ax2.grid(True)
+    plt.show()
+
+	# Plot precision/recall/threshold
+def plot_precision_recall_thresh(model):
+    # Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
+    precision_curve = model['precision_curve'][:-1]
+    recall_curve = model['recall_curve'][:-1]
+    pr_thresholds = model['pr_thresholds']
+    y_score = model['y_score']
+    
+    fig, ax1 = plt.subplots()
+    ax1.plot(pr_thresholds, precision_curve, 'b')
+    ax1.set_xlabel('pr_threshold')
+    ax1.set_ylabel('precision', color='b')
+    ax2 = ax1.twinx()
+    ax2.plot(pr_thresholds, recall_curve, 'r')
+    ax2.set_ylabel('recall', color='r')
+    ax1.grid(True)
+    ax2.grid(True)
+    plt.show()
+
 if __name__ == '__main__':
 
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
