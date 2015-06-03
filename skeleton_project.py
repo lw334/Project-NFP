@@ -175,6 +175,32 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
+	clf = clf(**kwargs) ################
+	# normalization
+	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
+	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
+	# scaler = StandardScaler()
+	# X_train = scaler.fit_transform(X_train)
+	# X_test = scaler.fit_transform(X_test)
+	y_train = np.ravel(train_df[y_col].astype(np.float))
+	y_test = np.ravel(test_df[y_col].astype(np.float))
+	# train and test
+	begin_train = time()
+	model = clf.fit(X_train, y_train)
+	end_train = time()
+	begin_test = time()
+	y_pred = clf.predict(X_test)
+	end_test = time()
+	y_pred_proba = clf.predict_proba(X_test)
+	train_time = end_train - begin_train
+	test_time = end_test - begin_test
+	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time
+
+#THIS IS RUN_CV with parameters set and outputs the model
+def run_cv_parameters_set(train_df, test_df, x_cols, y_col, clf, **kwargs):
+	'''train and test the model'''
+	from sklearn.preprocessing import StandardScaler
+	from time import time
 	#clf = clf(**kwargs) ################
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
@@ -585,13 +611,15 @@ if __name__ == '__main__':
 		df_mind_train= fill_mode(df_mind_train,col_name)
 		df_mind_test= fill_mode(df_mind_test,col_name)
 
-	df_mind_train.drop("edd_enrollment_interval_weeks", axis=1, inplace=True)
-	df_mind_test.drop("edd_enrollment_interval_weeks", axis=1, inplace=True) 
+	#df_mind_train.drop("edd_enrollment_interval_weeks", axis=1, inplace=True)
+	#df_mind_test.drop("edd_enrollment_interval_weeks", axis=1, inplace=True) 
 	for col_name in NUMERICAL:
 		if col_name != 'edd_enrollment_interval_weeks':
 			df_mind_train = fill_median(df_mind_train,col_name)
 			df_mind_test = fill_median(df_mind_test,col_name)
 
+	df_mind_train = fill_median(df_mind_train,"MotherNurseAgeDiff")
+	df_mind_test = fill_median(df_mind_test,"MotherNurseAgeDiff")
 	
 	# Transforming features 
 	df_train = cat_var_to_binary(df_mind_train,CATEGORICAL_2) ####HERE CHANGE BACK TO CATEGORICAL_2
@@ -694,10 +722,7 @@ if __name__ == '__main__':
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision_score","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:	
-		#try:
 		results = select_parameter(df_train, df_test, classifier, x_cols, y_col, dic_param_vals[classifier], list_threshold, "f1")
-		#except:
-		#	print 
 		evaluation_result = evaluation_result.append(results)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0,0])))
