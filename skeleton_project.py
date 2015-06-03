@@ -288,6 +288,14 @@ def plot_dt(model,feature_list):
 	graph.write_png("temp.png")
 	return #Image("temp.png")
 
+def create_match_feature(col_matching, col_to_match, varname, df):
+	df[varname] = (df[col_matching] != df[col_to_match])
+	df = binary_transform(df, [varname])
+	return df
+
+def get_ab_difference(col, sub_col, varname, df):
+	df[varname] = np.abs(df[col] - df[sub_col])
+
 if __name__ == '__main__':
 
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
@@ -381,13 +389,18 @@ if __name__ == '__main__':
 	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse"]
 
 	#upload data
-	input_file = "project_data12.csv"
+	input_file = "/Users/weiwei/Desktop/project_data12.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
 	# maybe delete this variable 
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
+
+
+
+
+
 
 	summary_stat= stats(df)
 	#print "stats", summary_stat
@@ -424,7 +437,10 @@ if __name__ == '__main__':
 	get_interval(df, "client_dob_yr", "client_enrollment_yr", "age")
 	get_interval(df, "HireDate", "EndDate", "nurse_work_duration")
 	get_dummy_dates(df,"leftbeforebirth")
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration"]
+	create_match_feature("English", "nurse_English", "EnglishNonMatch", df)
+	create_match_feature("Spanish", "nurse_Spanish", "SpanishNonMatch", df)
+	get_ab_difference("age_intake_years", "NurseAgeIntake", "MotherNurseAgeDiff", df)
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishNonMatch", "SpanishNonMatch", "MotherNurseAgeDiff"]
 
 	#drop the time variables after extracting dates (years and months)
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
