@@ -326,21 +326,22 @@ def get_ab_difference(col, sub_col, varname, df):
 	df[varname] = np.abs(df[col] - df[sub_col])
 
 	# Plot precision/recall/n
-def plot_precision_recall_n(model):
+def plot_precision_recall_n(y_true, y_prob, model_name):
 	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
-	precision_curve = model['precision_curve'][:-1]
-	recall_curve = model['recall_curve'][:-1]
-	pr_thresholds = model['pr_thresholds']
-	y_score = model['y_score']
-	
+	y_score = y_prob
+	from sklearn.metrics import precision_recall_curve
+	precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score)
+	precision_curve = precision_curve[:-1]
+	recall_curve = recall_curve[:-1]
+
 	pct_above_per_thresh = []
 	number_scored = len(y_score)
 	for value in pr_thresholds:
 		num_above_thresh = len(y_score[y_score>=value])
-		pct_above_thresh = num_above_thresh / number_scored
+		pct_above_thresh = num_above_thresh / float(number_scored)
 		pct_above_per_thresh.append(pct_above_thresh)
 	pct_above_per_thresh = np.array(pct_above_per_thresh)
-	
+	plt.clf()
 	fig, ax1 = plt.subplots()
 	ax1.plot(pct_above_per_thresh, precision_curve, 'b')
 	ax1.set_xlabel('percent of population')
@@ -348,18 +349,20 @@ def plot_precision_recall_n(model):
 	ax2 = ax1.twinx()
 	ax2.plot(pct_above_per_thresh, recall_curve, 'r')
 	ax2.set_ylabel('recall', color='r')
-	ax1.grid(True)
-	ax2.grid(True)
-	plt.show()
+	fig.show()
+	name = model_name + " Precision Recall vs Population"+ ".png"
+	plt.title(name)
+	plt.savefig(name)
+	return fig
 
 	# Plot precision/recall/threshold
-def plot_precision_recall_thresh(model):
+def plot_precision_recall_thresh(y_true, y_prob, model_name):
 	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
-	precision_curve = model['precision_curve'][:-1]
-	recall_curve = model['recall_curve'][:-1]
-	pr_thresholds = model['pr_thresholds']
-	y_score = model['y_score']
-	
+	from sklearn.metrics import precision_recall_curve
+	y_score = y_prob
+	precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score)	
+	precision_curve = precision_curve[:-1]
+	recall_curve = recall_curve[:-1]
 	fig, ax1 = plt.subplots()
 	ax1.plot(pr_thresholds, precision_curve, 'b')
 	ax1.set_xlabel('pr_threshold')
@@ -367,9 +370,13 @@ def plot_precision_recall_thresh(model):
 	ax2 = ax1.twinx()
 	ax2.plot(pr_thresholds, recall_curve, 'r')
 	ax2.set_ylabel('recall', color='r')
-	ax1.grid(True)
-	ax2.grid(True)
-	plt.show()
+	#ax1.grid(True)
+	#ax2.grid(True)
+	fig.show()
+	name = model_name + " Precision Recall vs Threshold"+ ".png"
+	plt.title(name)
+	plt.savefig(name)
+	return fig
 
 if __name__ == '__main__':
 
@@ -471,11 +478,6 @@ if __name__ == '__main__':
 	# maybe delete this variable 
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
-
-
-
-
-
 
 	summary_stat= stats(df)
 	#print "stats", summary_stat
@@ -589,13 +591,13 @@ if __name__ == '__main__':
 
 	################################ if split by year #################################################
 	#split data into training and test
-	last_train_year = 2009 #so means test_df starts from 2010
+	last_train_year = 2012 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
 	train_df, test_df = train_test_split(df,column_name,last_train_year)
 
 	#split train_df into the various train and testing splits for CV
-	last_train_year = 2008 #2007, 2008, 2009
-	last_test_year = 2009 #2008, 2009, 2012
+	last_train_year = 2009 #2007, 2008, 2009
+	last_test_year = 2012 #2008, 2009, 2012
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
@@ -653,7 +655,7 @@ if __name__ == '__main__':
 	print "NUMBER OF COLS with missing values in df_test", number_test
 
 	y_col = 'premature'
-	x_cols = df_train.columns[4:]
+	x_cols = df_train.columns[3:]
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
@@ -670,40 +672,77 @@ if __name__ == '__main__':
 	neighb = KNC(n_neighbors=15)
 	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
 	#randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
-	randomforest = RFC(n_estimators=10, max_features="log2", max_depth=6)
-	other_randomforest = RFC(bootstrap=True, criterion='gini',max_depth=15, max_features='log2', max_leaf_nodes=None,min_samples_leaf=1, min_samples_split=4, n_estimators=6)
+	randomforest = RFC(n_estimators=25, max_features="auto", max_depth=None)
+	other_randomforest = RFC(n_estimators=50, max_features="log2", max_depth=4)
 	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
-	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=50)
+	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=10)
 	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
-	bagging = BC(n_estimators=15, max_samples=0.5, max_features=0.5)
+	bagging = BC(n_estimators=10, max_samples=1.0, max_features=0.7)
+	bagging_2 = BC(n_estimators=15, max_samples=1.0, max_features=0.5)
 	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
-	boosting = GBC(n_estimators=150, learning_rate=0.05)
+	boosting = GBC(n_estimators=100, learning_rate=0.3)
+	boosting_2 = GBC(n_estimators=200, learning_rate=0.1)
 
-	#classifiers = [logit neighb, randomforest, decisiontree, bagging, boosting]
-	classifiers = [LR, KNC, RFC, BC, GBC]#DTC
+	#classifiers = [randomforest, other_randomforest, bagging, bagging_2, boosting, boosting_2] #logit, neighb, decisiontree, 
+	#classifiers = [LR, KNC, RFC, BC, GBC]#DTC
 	#classifiers = [decisiontree]
+	classifiers = [randomforest,bagging_2,boosting_2]
+
 	
-	'''
 	###REMEMBER TO RUN run_cv_parameters_set when doing decision tree plot!
-	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision","train_time","test_time"])#"auc_prc"
 	evaluation_result = pd.DataFrame(columns=metrics)
+	threshold_dict = {randomforest:0.35,other_randomforest:0.25, bagging:0.25, bagging_2:0.35, boosting:0.4, boosting_2:0.3}
+	name_dict = {randomforest:"random forest 20",other_randomforest:"random forest 50", bagging:"bagging 10", bagging_2:"bagging 15", boosting:"boosting 100", boosting_2:"boosting 200"}
+	#threshold = 0.3
 	for classifier in classifiers:
-		y_pred, y_pred_prob, y_true, train_time, test_time, model = run_cv(df_train, df_test, x_cols, y_col, classifier)
-		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
+		threshold = threshold_dict[classifier]
+		name = name_dict[classifier]
+		y_pred, y_pred_prob, y_true, train_time, test_time, model = run_cv_parameters_set(df_train, df_test, x_cols, y_col, classifier)
+		#name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+		#name = str(classifier)
+		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time,threshold)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
 		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
+		plot_precision_recall_n(y_true, y_pred_prob, name)
+		plot_precision_recall_thresh(y_true, y_pred_prob, name)
+		#name = str(int(name) + 1)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
-	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	print evaluation_result
+	
 
-	plot_dt(model,x_cols)
+	run_decision_tree = "No"
+	###### THIS PLOTS A DECISION TREE OVER THE POSITIVES THAT THE MODEL GETS WRONG
+	threshold = 0.3
+	classifier = boosting_2
+	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=3)
+	if run_decision_tree =="Yes":
+		y_pred, y_pred_prob, y_true, train_time, test_time, model = run_cv_parameters_set(df_train, df_test, x_cols, y_col, classifier)
+		#name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+		#dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time, 0.3)
+		y_pred_new = applythreshold(y_pred_prob, threshold)
+		y_correct = y_pred_new - y_true
+		df_test["correct_predicted"] = y_correct
+		y_correct[y_correct>0] = 0
+		X_train = np.array(df_test[x_cols].as_matrix().astype(np.float))
+		y_train = np.ravel(df_test["correct_predicted"].astype(np.float))
+		model = decisiontree.fit(X_train, y_train)
+		plot_dt(model,x_cols)
+
+	# For feature importance
+	#X_train = np.array(df_train[x_cols].as_matrix().astype(np.float))
+	#y_train = np.ravel(df_train[y_col].astype(np.float))
+	#model = randomforest.fit(X_train, y_train)
+	#feature_importance = pd.Series(model.feature_importances_)
+	#labels = pd.DataFrame(x_cols,columns=["features"])
+	#labels["importance"] = feature_importance
 
 	'''
-
+	
 	import itertools as iter
 	dic_param_vals = {
 		LR:{"C":[0.01, 0.1, 1.0, 10.0]},
@@ -726,7 +765,7 @@ if __name__ == '__main__':
 	evaluation_result.loc["baseline"] = baseline_dict
 	### OUTPUT EVALUATION TABLE
 	evaluation_result.to_csv("parametergridsearch.csv")
-	
+	'''
 
 	'''
 	################################ if split the sorted dataframe evenly ##################################
