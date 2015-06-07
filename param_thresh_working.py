@@ -442,9 +442,10 @@ if __name__ == '__main__':
 	from sklearn.linear_model import LogisticRegression as LR
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
+	from sklearn.ensemble import AdaBoostClassifier as ABC
 	
 	# classifiers = [LR, KNC, RFC, DTC, BC, GBC]
-	classifiers = [BC]
+	classifiers = [BC, GBC, ABC]
 
 	import itertools as iter
 	dic_param_vals = {
@@ -453,11 +454,12 @@ if __name__ == '__main__':
 		LSVC:{"C":[0.1, 1.0, 10.0]},
 		RFC:{"n_estimators":[10, 20, 50], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
 		DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
-		BC:{"base_estimator":[DTC(), RFC(), GBC()],"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
-		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]}
+		BC:{"base_estimator":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), GBC(n_estimators=200, learning_rate=0.1)],"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
+		GBC:{"init":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), BC(n_estimators=15, max_samples=1.0, max_features=0.5)],"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]},
+		ABC:{"base_estimator":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), BC(n_estimators=15, max_samples=1.0, max_features=0.5)], "n_estimators":[30, 50, 100], "learning_rate":[0.5, 1.0]}
 	}
 	
-	list_threshold = np.arange(0.25,0.45,0.05)
+	list_threshold = np.arange(0.25,0.5,0.05)
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision_score","train_time","test_time"])
 	evaluation_results = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -484,8 +486,8 @@ if __name__ == '__main__':
 				for threshold in list_threshold:
 					name = classifier_name+"_"+str(comb)+"_"+str(threshold)+"_"+str(fold_index)
 					evaluation_result, conf_matrix = evaluate(name, y_test, y_pred, y_pred_prob, time_train, time_test, threshold)
-					print name
-					print conf_matrix
+					# print name
+					# print conf_matrix
 					# results.loc[name] = evaluation_result
 					sub_results[threshold].loc[name] = evaluation_result
 				fold_index += 1
