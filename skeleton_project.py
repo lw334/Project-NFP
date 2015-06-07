@@ -48,7 +48,7 @@ def bar_chart(dataframe,col_title):
 	plt.savefig(name)
 	return bar
 
-	# data preprocessing
+# data preprocessing
 def binary_transform(df, cols):
 	''' Transform True/False to 1/0'''
 	df[cols] = df[cols].applymap(lambda x: 1 if x else 0)
@@ -175,7 +175,7 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
-	clf = clf(**kwargs) ################
+	clf = clf(**kwargs)
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
 	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
@@ -197,11 +197,10 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time
 
 #THIS IS RUN_CV with parameters set and outputs the model
-def run_cv_parameters_set(train_df, test_df, x_cols, y_col, clf, **kwargs):
+def run_cv_parameters_set(train_df, test_df, x_cols, y_col, clf):
 	'''train and test the model'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
-	#clf = clf(**kwargs) ################
 	# normalization
 	X_train = np.array(train_df[x_cols].as_matrix().astype(np.float))
 	X_test = np.array(test_df[x_cols].as_matrix().astype(np.float))
@@ -223,7 +222,6 @@ def run_cv_parameters_set(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time, model
 
 def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
-	#LETS FIX THIS - PUT PRECISION RECALL INTO SEPARATE FUNCTION
 	'''generate evaluation results'''
 	from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve, average_precision_score
 	rv = {}
@@ -231,15 +229,9 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 	rv["accuracy"] = str(np.mean(y == y_pred_new))
 	rv["precision"] = str(precision_score(y, y_pred_new))
 	rv["recall"] = str(recall_score(y, y_pred_new))
-	rv["f1"] = str(f1_score(y, y_pred_new))#maybe remove labels=[0,1]
+	rv["f1"] = str(f1_score(y, y_pred_new))
 	rv["auc_roc"] = str(roc_auc_score(y, y_pred_prob))
 	rv["average_precision_score"] = str(average_precision_score(y,y_pred_prob))
-	#fpr, tpr, _ = roc_curve(y, y_pred_prob)
-	# plot_eval_curve(fpr, tpr, name, "roc")
-	#rv["auc_roc"] = str(auc(fpr, tpr))
-	#precision_c, recall_c, _ = precision_recall_curve(y, y_pred_prob)
-	# plot_eval_curve(recall_c, precision_c, name, "prc")
-	#rv["auc_prc"] = str(auc(recall_c, precision_c))
 	rv["train_time"] = str(train_time)
 	rv["test_time"] = str(test_time)
 	return pd.Series(rv), confusion_matrix(y, y_pred_new)
@@ -313,7 +305,6 @@ def plot_dt(model,feature_list):
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
 	graph.write_png("temp.png")
 	return #Image("temp.png")
-
 
 def create_match_feature(col_matching, col_to_match, varname, df):
 	df = binary_transform(df,[col_matching, col_to_match])
@@ -403,7 +394,8 @@ if __name__ == '__main__':
 	"CLIENT_ABUSE_TIMES_0_HEAD_PERM_I", "CLIENT_ABUSE_TIMES_0_ABUSE_WEAPO",
 	"CLIENT_BIO_DAD_0_CONTACT_WITH", "CLIENT_LIVING_0_WITH", "CLIENT_WORKING_0_CURRENTLY_WORKI",
 	"CLIENT_ABUSE_HIT_0_SLAP_PARTNER","highest_educ", "educ_currently_enrolled_type",
-	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE","PrimRole","SecRole","CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
+	"Highest_Nursing_Degree","Highest_Non_Nursing_Degree","NurseRE","PrimRole","SecRole",
+	"CLIENT_ABUSE_EMOTION_0_PHYSICAL_", "CLIENT_ABUSE_EMOTION_0_PHYSICAL_",
 	"CLIENT_ABUSE_FORCED_0_SEX", "CLIENT_ABUSE_HIT_0_SLAP_LAST_TIM", 
 	"CLIENT_ABUSE_AFRAID_0_PARTNER", "educ_currently_enrolled",
 	"English", "Spanish", "disease","heart_disease","high_blood_pressure","diabetes","kidney_disease",
@@ -414,12 +406,13 @@ if __name__ == '__main__':
 	"nurse_Spanish","nurserace_americanindian_alaskanative","nurserace_asian","nurserace_black",
 	"nurserace_nativehawaiian_pacificislander","nurserace_white","other_diseases",
 	"govt_financial_assistance", "govt_crisis_intervention", "govt_substance_abuse", 
-	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",
-	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse",  "AgeRatioIntake", "CLIENT_HEALTH_BELIEF_AVG"]
+	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services",
+	"smoking", "alcohol", "marijuana", "hard_drugs", "physical_abuse", "sexual_abuse", 
+	"AgeRatioIntake", "CLIENT_HEALTH_BELIEF_AVG"]
 
 	NUMERICAL = ["PREPGKG", "PREPGBMI", "age_intake_years", 
-	"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", "NURSE_0_YEAR_MATERNAL_EXPERIENCE",
-	"NURSE_0_YEAR_NURSING_EXPERIENCE","NurseAgeIntake", "AgeRatioIntake"]
+	"edd_enrollment_interval_weeks", "gest_weeks_intake","NURSE_0_YEAR_COMMHEALTH_EXPERIEN", 
+	"NURSE_0_YEAR_MATERNAL_EXPERIENCE", "NURSE_0_YEAR_NURSING_EXPERIENCE","NurseAgeIntake", "AgeRatioIntake"]
 
 	CATEGORICAL = ["MomsRE", "HSGED", "INCOME", "MARITAL", 
 	"CLIENT_ABUSE_TIMES_0_HURT_LAST_Y", "CLIENT_ABUSE_TIMES_0_SLAP_PUSH_P",
@@ -467,15 +460,15 @@ if __name__ == '__main__':
 	"chronic_urinary_tract_infection","chronic_vaginal_infection_sti","genetic_disease_congenital_anomalies",
 	"mental_health","other_diseases","nurse_English","nurse_hispanic",
 	"nurse_Spanish","nurserace_americanindian_alaskanative",
-	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white", "govt_financial_assistance", "govt_crisis_intervention", "govt_substance_abuse", 
-	"medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", "govt_services", "smoking",	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse"]
+	"nurserace_asian", "nurserace_black","nurserace_nativehawaiian_pacificislander","nurserace_white", "govt_financial_assistance", 
+	"govt_crisis_intervention", "govt_substance_abuse", "medicaid", "govt_healthcare", "govt_healthcare", "govt_educational_programs", 
+	"govt_services", "smoking",	"alcohol",	"marijuana", "hard_drugs", "physical_abuse", "sexual_abuse"]
 
 	#upload data
 	input_file = "project_data12.csv"
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
-	# maybe delete this variable 
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
 
@@ -517,8 +510,8 @@ if __name__ == '__main__':
 	create_match_feature("English", "nurse_English", "EnglishMatch", df)
 	create_match_feature("Spanish", "nurse_Spanish", "SpanishMatch", df)
 	get_ab_difference("age_intake_years", "NurseAgeIntake", "MotherNurseAgeDiff", df)
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishMatch", "SpanishMatch", "MotherNurseAgeDiff",
-	"whiteMatch", "hispanicMatch", "blackMatch"]
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishMatch", 
+	"SpanishMatch", "MotherNurseAgeDiff", "whiteMatch", "hispanicMatch", "blackMatch"]
 
 	#drop the time variables after extracting dates (years and months)
 	cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
@@ -527,69 +520,28 @@ if __name__ == '__main__':
 	cols_to_drop_2 = ["client_dob", 
 	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate",'SERVICE_USE_0_OTHER1_DESC',
-	'SERVICE_USE_0_OTHER2_DESC',
-	'SERVICE_USE_0_OTHER3_DESC',
-	'SERVICE_USE_0_TANF_CLIENT',
-	'SERVICE_USE_0_FOODSTAMP_CLIENT',
-	'SERVICE_USE_0_SOCIAL_SECURITY_CL',
-	'SERVICE_USE_0_UNEMPLOYMENT_CLIEN',
-	'SERVICE_USE_0_IPV_CLIENT',
-	'SERVICE_USE_0_CPS_CHILD',
-	'SERVICE_USE_0_MENTAL_CLIENT',
-	'SERVICE_USE_0_SMOKE_CLIENT',
-	'SERVICE_USE_0_ALCOHOL_ABUSE_CLIE',
-	'SERVICE_USE_0_DRUG_ABUSE_CLIENT',
-	'SERVICE_USE_0_MEDICAID_CLIENT',
-	'SERVICE_USE_0_MEDICAID_CHILD',
-	'SERVICE_USE_0_SCHIP_CLIENT',
-	'SERVICE_USE_0_SCHIP_CHILD',
-	'SERVICE_USE_0_SPECIAL_NEEDS_CHIL',
-	'SERVICE_USE_0_PCP_CLIENT',
-	'SERVICE_USE_0_PCP_WELL_CHILD',
-	'SERVICE_USE_0_DEVELOPMENTAL_DISA',
-	'SERVICE_USE_0_WIC_CLIENT',
-	'SERVICE_USE_0_CHILD_CARE_CLIENT',
-	'SERVICE_USE_0_JOB_TRAINING_CLIEN',
-	'SERVICE_USE_0_HOUSING_CLIENT',
-	'SERVICE_USE_0_TRANSPORTATION_CLI',
-	'SERVICE_USE_0_PREVENT_INJURY_CLI',
-	'SERVICE_USE_0_BIRTH_EDUC_CLASS_C',
-	'SERVICE_USE_0_LACTATION_CLIENT',
-	'SERVICE_USE_0_GED_CLIENT',
-	'SERVICE_USE_0_HIGHER_EDUC_CLIENT',
-	'SERVICE_USE_0_CHARITY_CLIENT',
-	'SERVICE_USE_0_LEGAL_CLIENT',
-	'SERVICE_USE_0_OTHER1',
-	'SERVICE_USE_0_OTHER2',
-	'SERVICE_USE_0_OTHER3',
-	'SERVICE_USE_0_PRIVATE_INSURANCE_',
-	'SERVICE_USE_0_PRIVATE_INSURANCE1',
-	'Nurse_ID',
-	'NURSE_0_BIRTH_YEAR']
-	col_to_drop_old = ["SERVICE_USE_0_OTHER1_DESC","SERVICE_USE_0_OTHER2_DESC",
-	"SERVICE_USE_0_OTHER3_DESC","SERVICE_USE_0_TANF_CLIENT",
-	"SERVICE_USE_0_FOODSTAMP_CLIENT","SERVICE_USE_0_SOCIAL_SECURITY_CL",
-	"SERVICE_USE_0_UNEMPLOYMENT_CLIEN",
-	"SERVICE_USE_0_IPV_CLIENT","SERVICE_USE_0_CPS_CHILD",
-	"SERVICE_USE_0_MENTAL_CLIENT","SERVICE_USE_0_SMOKE_CLIENT",
-	"SERVICE_USE_0_ALCOHOL_ABUSE_CLIE","SERVICE_USE_0_DRUG_ABUSE_CLIENT",
-	"SERVICE_USE_0_MEDICAID_CLIENT","SERVICE_USE_0_MEDICAID_CHILD",
-	"SERVICE_USE_0_SCHIP_CLIENT","SERVICE_USE_0_SCHIP_CHILD",
-	"SERVICE_USE_0_SPECIAL_NEEDS_CHIL","SERVICE_USE_0_PCP_CLIENT","SERVICE_USE_0_PCP_WELL_CHILD",
-	"SERVICE_USE_0_DEVELOPMENTAL_DISA","SERVICE_USE_0_WIC_CLIENT","SERVICE_USE_0_CHILD_CARE_CLIENT",
-	"SERVICE_USE_0_JOB_TRAINING_CLIEN","SERVICE_USE_0_HOUSING_CLIENT",
-	"SERVICE_USE_0_TRANSPORTATION_CLI","SERVICE_USE_0_PREVENT_INJURY_CLI",
-	"SERVICE_USE_0_BIRTH_EDUC_CLASS_C","SERVICE_USE_0_LACTATION_CLIENT",
-	"SERVICE_USE_0_GED_CLIENT","SERVICE_USE_0_HIGHER_EDUC_CLIENT",
-	"SERVICE_USE_0_CHARITY_CLIENT","SERVICE_USE_0_LEGAL_CLIENT","SERVICE_USE_0_OTHER1",
-	"SERVICE_USE_0_OTHER2","SERVICE_USE_0_OTHER3",
-	"SERVICE_USE_0_PRIVATE_INSURANCE_","SERVICE_USE_0_PRIVATE_INSURANCE1"] 
-	'''"Nurse_ID", "NURSE_0_BIRTH_YEAR","client_dob", 
-	"client_edd", "client_enrollment", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
-	"EndDate","HireDate"]'''
+	'SERVICE_USE_0_OTHER2_DESC', 'SERVICE_USE_0_OTHER3_DESC',
+	'SERVICE_USE_0_TANF_CLIENT', 'SERVICE_USE_0_FOODSTAMP_CLIENT',
+	'SERVICE_USE_0_SOCIAL_SECURITY_CL', 'SERVICE_USE_0_UNEMPLOYMENT_CLIEN',
+	'SERVICE_USE_0_IPV_CLIENT', 'SERVICE_USE_0_CPS_CHILD',
+	'SERVICE_USE_0_MENTAL_CLIENT', 'SERVICE_USE_0_SMOKE_CLIENT',
+	'SERVICE_USE_0_ALCOHOL_ABUSE_CLIE', 'SERVICE_USE_0_DRUG_ABUSE_CLIENT',
+	'SERVICE_USE_0_MEDICAID_CLIENT', 'SERVICE_USE_0_MEDICAID_CHILD',
+	'SERVICE_USE_0_SCHIP_CLIENT', 'SERVICE_USE_0_SCHIP_CHILD',
+	'SERVICE_USE_0_SPECIAL_NEEDS_CHIL', 'SERVICE_USE_0_PCP_CLIENT',
+	'SERVICE_USE_0_PCP_WELL_CHILD', 'SERVICE_USE_0_DEVELOPMENTAL_DISA',
+	'SERVICE_USE_0_WIC_CLIENT', 'SERVICE_USE_0_CHILD_CARE_CLIENT',
+	'SERVICE_USE_0_JOB_TRAINING_CLIEN', 'SERVICE_USE_0_HOUSING_CLIENT',
+	'SERVICE_USE_0_TRANSPORTATION_CLI', 'SERVICE_USE_0_PREVENT_INJURY_CLI',
+	'SERVICE_USE_0_BIRTH_EDUC_CLASS_C', 'SERVICE_USE_0_LACTATION_CLIENT',
+	'SERVICE_USE_0_GED_CLIENT', 'SERVICE_USE_0_HIGHER_EDUC_CLIENT',
+	'SERVICE_USE_0_CHARITY_CLIENT', 'SERVICE_USE_0_LEGAL_CLIENT',
+	'SERVICE_USE_0_OTHER1', 'SERVICE_USE_0_OTHER2', 'SERVICE_USE_0_OTHER3',
+	'SERVICE_USE_0_PRIVATE_INSURANCE_', 'SERVICE_USE_0_PRIVATE_INSURANCE1',
+	'Nurse_ID', 'NURSE_0_BIRTH_YEAR']
 
 
-	################################ if split by year #################################################
+	################################ if split by year ##############################################
 	#split data into training and test
 	last_train_year = 2012 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
@@ -606,8 +558,6 @@ if __name__ == '__main__':
 	df_mind_train = run_missing_indicator(cv_train,missing_cols)
 	df_mind_test = run_missing_indicator(cv_test,missing_cols)
 
-
-	#NEED DATE COLUMNS OR OTHER RANDOM ONES 
 	#fill_nans
 	for col_name in NANCOLS_CAT_BINARY:
 		df_mind_train= fill_mode(df_mind_train,col_name)
@@ -615,6 +565,7 @@ if __name__ == '__main__':
 
 	#df_mind_train.drop("edd_enrollment_interval_weeks", axis=1, inplace=True)
 	#df_mind_test.drop("edd_enrollment_interval_weeks", axis=1, inplace=True) 
+
 	for col_name in NUMERICAL:
 		if col_name != 'edd_enrollment_interval_weeks':
 			df_mind_train = fill_median(df_mind_train,col_name)
@@ -630,21 +581,14 @@ if __name__ == '__main__':
 	df_train = binary_transform(df_train, BOOLEAN)
 	df_test = binary_transform(df_test, BOOLEAN)
 
-
 	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_train)
 	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_train)
 	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_train)
-
 
 	create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_test)
 	create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_test)
 	create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_test)
 
-	# df_train = pd.DataFrame.from_csv("train_1.csv")
-	# df_test = pd.DataFrame.from_csv("test_1.csv")
-
-	# Models
-	# Set dependent and independent variables ####CAN CHANGE TO cols_to_drop_2
 	for col in cols_to_drop_2:####HERE CHANGE BACK TO cols_to_drop
 		df_train.drop(col, axis=1, inplace=True)
 		df_test.drop(col, axis=1, inplace=True) 
@@ -654,6 +598,11 @@ if __name__ == '__main__':
 	print "NUMBER OF COLS with missing values in df_train", number_train
 	print "NUMBER OF COLS with missing values in df_test", number_test
 
+	# df_train = pd.DataFrame.from_csv("train_1.csv")
+	# df_test = pd.DataFrame.from_csv("test_1.csv")
+
+	# Models
+	# Set dependent and independent variables
 	y_col = 'premature'
 	x_cols = df_train.columns[3:]
 
@@ -666,31 +615,23 @@ if __name__ == '__main__':
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	
-	# logit = LR(fit_intercept=False)
+
 	logit = LR(C=10.0)
-	# neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
 	neighb = KNC(n_neighbors=15)
-	svm = LSVC(C=1.0)#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
-	#randomforest = RFC(n_estimators=300,criterion='gini',max_depth=500) #n is 10 default criterion='gini' or 'entropy'
+	svm = LSVC(C=1.0)
 	randomforest = RFC(n_estimators=25, max_features="auto", max_depth=None)
 	other_randomforest = RFC(n_estimators=50, max_features="log2", max_depth=4)
-	# decisiontree = DTC(criterion='gini')#can also be 'entropy'
 	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=10)
-	# bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
 	bagging = BC(n_estimators=10, max_samples=1.0, max_features=0.7)
 	bagging_2 = BC(n_estimators=15, max_samples=1.0, max_features=0.5)
-	# boosting = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
 	boosting = GBC(n_estimators=100, learning_rate=0.3)
 	boosting_2 = GBC(n_estimators=200, learning_rate=0.1)
 
-	#classifiers = [randomforest, other_randomforest, bagging, bagging_2, boosting, boosting_2] #logit, neighb, decisiontree, 
-	#classifiers = [LR, KNC, RFC, BC, GBC]#DTC
-	#classifiers = [decisiontree]
+	#classifiers = [randomforest, other_randomforest, bagging, bagging_2, boosting, boosting_2]
 	classifiers = [randomforest,bagging_2,boosting_2]
-
 	
 	###REMEMBER TO RUN run_cv_parameters_set when doing decision tree plot!
-	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision","train_time","test_time"])#"auc_prc"
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision","train_time","test_time"])
 	evaluation_result = pd.DataFrame(columns=metrics)
 	threshold_dict = {randomforest:0.35,other_randomforest:0.25, bagging:0.25, bagging_2:0.35, boosting:0.4, boosting_2:0.3}
 	name_dict = {randomforest:"random forest 20",other_randomforest:"random forest 50", bagging:"bagging 10", bagging_2:"bagging 15", boosting:"boosting 100", boosting_2:"boosting 200"}
@@ -699,19 +640,15 @@ if __name__ == '__main__':
 		threshold = threshold_dict[classifier]
 		name = name_dict[classifier]
 		y_pred, y_pred_prob, y_true, train_time, test_time, model = run_cv_parameters_set(df_train, df_test, x_cols, y_col, classifier)
-		#name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
-		#name = str(classifier)
 		dic, conf_matrix = evaluate(name, y_true, y_pred, y_pred_prob, train_time, test_time,threshold)
 		# print name, conf_matrix
 		evaluation_result.loc[name] = dic
 		p_r_curve = precision_recall_curve(y_true, y_pred_prob, name)
 		plot_precision_recall_n(y_true, y_pred_prob, name)
 		plot_precision_recall_thresh(y_true, y_pred_prob, name)
-		#name = str(int(name) + 1)
 	baseline = str(1-df_test.describe()[y_col]["mean"])
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0,0])))
 	evaluation_result.loc["baseline"] = baseline_dict
-	### OUTPUT EVALUATION TABLE
 	print evaluation_result
 	
 
@@ -733,6 +670,7 @@ if __name__ == '__main__':
 		model = decisiontree.fit(X_train, y_train)
 		plot_dt(model,x_cols)
 
+		
 	# For feature importance
 	#X_train = np.array(df_train[x_cols].as_matrix().astype(np.float))
 	#y_train = np.ravel(df_train[y_col].astype(np.float))
