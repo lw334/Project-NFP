@@ -1,11 +1,11 @@
-''' MAIN PROJECT PIPELINE TO PUT ALL FUNCTIONS IN FOR NFP PROJECT
+''' COMPLETE PROJECT PIPELINE FOR NFP PROJECT ON PREDICTING PRETERM BIRTHS (By: Federica Nocera, Xiaorui Tang, Lingwei Cheng)
 '''
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import re
 
+#### functions from our pipeline which can easily be applied to other machine learning prediction problems
 def readcsv_funct(input_csv):
 	''' Takes input_csv file name as a string and returns DataFrame
 	'''
@@ -196,9 +196,8 @@ def run_cv(train_df, test_df, x_cols, y_col, clf, **kwargs):
 	test_time = end_test - begin_test
 	return y_pred, y_pred_proba[:,1], y_test, train_time, test_time
 
-#THIS IS RUN_CV with parameters set and outputs the model
 def run_cv_parameters_set(train_df, test_df, x_cols, y_col, clf):
-	'''train and test the model'''
+	'''train and test the model with specified parameters and get trained model as output'''
 	from sklearn.preprocessing import StandardScaler
 	from time import time
 	# normalization
@@ -253,8 +252,7 @@ def precision_recall_curve(y_true, y_pred_prob, model_name):
 	return graph
 
 def value_combinations(dic):
-	'''
-	Takes a dictionary which maps from parameter name to a list of possible
+	'''Takes a dictionary which maps from parameter name to a list of possible
 	values, and returns a list of all possible dictionaries. Each dictionary 
 	maps from parameter name to one particular value.
 	'''
@@ -273,6 +271,8 @@ def value_combinations(dic):
 	return rv
 
 def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_vals, list_threshold, criterion, **kwargs):
+	''' the first parameter selection function we wrote  
+	'''
 	temp = []
 	classifier_name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
 	combs = value_combinations(dic_param_vals)
@@ -290,6 +290,8 @@ def select_parameter(train_df, test_df, classifier, x_cols, y_col, dic_param_val
 	return results
 
 def plot_dt(model,feature_list):
+	''' function for plotting decision tree
+	'''
 	import matplotlib.pyplot as plt
 	from pprint import pprint
 	import numpy as np
@@ -297,14 +299,11 @@ def plot_dt(model,feature_list):
 	from sklearn import tree
 	import pydot
 	from sklearn.externals import joblib
-	from IPython.display import Image
-	#model_location = model['model_location']
-	#fitted_model = joblib.load(os.path.join(model_path, 'model', model_location))
 	dot_data = StringIO()
 	tree.export_graphviz(model, out_file=dot_data, feature_names =feature_list)
 	graph = pydot.graph_from_dot_data(dot_data.getvalue())
-	graph.write_png("temp.png")
-	return #Image("temp.png")
+	graph.write_png("decision_tree.png")
+	return
 
 def create_match_feature(col_matching, col_to_match, varname, df):
 	df = binary_transform(df,[col_matching, col_to_match])
@@ -318,13 +317,11 @@ def get_ab_difference(col, sub_col, varname, df):
 
 	# Plot precision/recall/n
 def plot_precision_recall_n(y_true, y_prob, model_name):
-	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
-	y_score = y_prob
 	from sklearn.metrics import precision_recall_curve
+	y_score = y_prob
 	precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score)
 	precision_curve = precision_curve[:-1]
 	recall_curve = recall_curve[:-1]
-
 	pct_above_per_thresh = []
 	number_scored = len(y_score)
 	for value in pr_thresholds:
@@ -348,7 +345,6 @@ def plot_precision_recall_n(y_true, y_prob, model_name):
 
 	# Plot precision/recall/threshold
 def plot_precision_recall_thresh(y_true, y_prob, model_name):
-	# Weird because precision & recall curves have n_thresholds + 1 values. Their last values are fixed so throw away last value.
 	from sklearn.metrics import precision_recall_curve
 	y_score = y_prob
 	precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score)	
@@ -370,6 +366,8 @@ def plot_precision_recall_thresh(y_true, y_prob, model_name):
 	return fig
 
 if __name__ == '__main__':
+	#### Main function with variables to use for various different transformations, train and test splits, imputation and feature conversion,
+	#### model training and testing and evaluation. 
 
 	TIME = ["client_enrollment", "client_dob", "client_edd", "NURSE_0_FIRST_HOME_VISIT_DATE", "EarliestCourse",
 	"EndDate","HireDate"] 
@@ -467,6 +465,7 @@ if __name__ == '__main__':
 	#upload data
 	input_file = "project_data12.csv"
 	df_in = readcsv_funct(input_file)
+	
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
 	print "Number of clients: "+str(len(df))
@@ -476,7 +475,7 @@ if __name__ == '__main__':
 	summary_stat= stats(df)
 	#print "stats", summary_stat
 
-	#saves distributions
+	#plots and saves distributions
 	pd.value_counts(df.premature).plot(kind='bar')
 	col_names = ["premature","MomsRE", "HSGED", "INCOME", "MARITAL","highest_educ", "educ_currently_enrolled_type"]
 	for col in col_names:
@@ -554,7 +553,7 @@ if __name__ == '__main__':
 	column_name = "client_enrollment_yr"
 	cv_train, cv_test = cv_split(train_df,column_name,last_train_year, last_test_year)
 
-	#impute 
+	#section of code for imputing and conversion of features 
 	#make dummy indicators for columns with large numbers of missing values
 	df_mind_train = run_missing_indicator(cv_train,missing_cols)
 	df_mind_test = run_missing_indicator(cv_test,missing_cols)
@@ -563,9 +562,6 @@ if __name__ == '__main__':
 	for col_name in NANCOLS_CAT_BINARY:
 		df_mind_train= fill_mode(df_mind_train,col_name)
 		df_mind_test= fill_mode(df_mind_test,col_name)
-
-	#df_mind_train.drop("edd_enrollment_interval_weeks", axis=1, inplace=True)
-	#df_mind_test.drop("edd_enrollment_interval_weeks", axis=1, inplace=True) 
 
 	for col_name in NUMERICAL:
 		if col_name != 'edd_enrollment_interval_weeks':
@@ -599,10 +595,7 @@ if __name__ == '__main__':
 	print "NUMBER OF COLS with missing values in df_train", number_train
 	print "NUMBER OF COLS with missing values in df_test", number_test
 
-	# df_train = pd.DataFrame.from_csv("train_1.csv")
-	# df_test = pd.DataFrame.from_csv("test_1.csv")
-
-	# Models
+	##### Model fitting and evaluation section
 	# Set dependent and independent variables
 	y_col = 'premature'
 	x_cols = df_train.columns[3:]
@@ -617,7 +610,7 @@ if __name__ == '__main__':
 	from sklearn.ensemble import BaggingClassifier as BC
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	
-
+	# Can specify models with parameters
 	logit = LR(C=10.0)
 	neighb = KNC(n_neighbors=15)
 	svm = LSVC(C=1.0)
@@ -630,11 +623,12 @@ if __name__ == '__main__':
 	boosting_2 = GBC(n_estimators=200, learning_rate=0.1)
 	bagging_test = BC(n_estimators=5, max_samples=0.5, max_features=0.5)
 
+	###### Specify the models to run as classifiers
 	#classifiers = [randomforest, other_randomforest, bagging, bagging_2, boosting, boosting_2]
 	classifiers = [randomforest,bagging_2,boosting_2, bagging_test]
 	# classifiers=[bagging_test]
 	
-	###REMEMBER TO RUN run_cv_parameters_set when doing decision tree plot!
+	##### Runs all the models specified in classifiers and outputs metrics table, precision-recall curves
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision","train_time","test_time"])
 	evaluation_result = pd.DataFrame(columns=metrics)
 	threshold_dict = {randomforest:0.25,other_randomforest:0.25, bagging:0.25, bagging_2:0.3, boosting:0.4, boosting_2:0.2, bagging_test:0.45}
@@ -655,9 +649,9 @@ if __name__ == '__main__':
 	evaluation_result.loc["baseline"] = baseline_dict
 	print evaluation_result
 	
-
+	###### Write Yes in run_decision_tree to run the decision tree code
 	run_decision_tree = "No"
-	###### THIS PLOTS A DECISION TREE OVER THE POSITIVES THAT THE MODEL GETS WRONG
+	# plots a decision tree over the positives that a given model gets wrong (have to run the above code for one classifier)
 	threshold = 0.3
 	classifier = boosting_2
 	decisiontree = DTC(max_features="log2", criterion='gini', max_depth=3)
@@ -675,7 +669,7 @@ if __name__ == '__main__':
 		plot_dt(model,x_cols)
 
 
-	# For feature importance
+	# For feature importance uncomment the following
 	#X_train = np.array(df_train[x_cols].as_matrix().astype(np.float))
 	#y_train = np.ravel(df_train[y_col].astype(np.float))
 	#model = randomforest.fit(X_train, y_train)
