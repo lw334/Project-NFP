@@ -12,4 +12,6 @@ skeleton_project.py is the main script with all functions and which is used to t
 
 variable_list.py is a list of variables that are taken from the database (not including features which are additionally created in the code). 
 
-fnocera.py, hw3.py, xiaorui.py are rough scripts that were written for a different project. 
+old_project_pipeline.py is the untidy version of our code with some parts of the code that we do not use in the final version.
+
+fnocera.py, hw3.py, xiaorui.py are rough scripts that were written for a previous project. 
