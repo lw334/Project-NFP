@@ -366,7 +366,8 @@ if __name__ == '__main__':
 	create_match_feature("English", "nurse_English", "EnglishMatch", df)
 	create_match_feature("Spanish", "nurse_Spanish", "SpanishMatch", df)
 	get_ab_difference("age_intake_years", "NurseAgeIntake", "MotherNurseAgeDiff", df)
-	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", "EnglishMatch", "SpanishMatch", "MotherNurseAgeDiff",
+	GENERATED = ["leftbeforebirth", "enrollment_duration", "age", "nurse_work_duration", 
+	"EnglishMatch", "SpanishMatch", "MotherNurseAgeDiff",
 	"whiteMatch", "hispanicMatch", "blackMatch"]
 
 	# drop the time variables after extracting dates (years and months)
@@ -393,7 +394,7 @@ if __name__ == '__main__':
 	'SERVICE_USE_0_PRIVATE_INSURANCE_', 'SERVICE_USE_0_PRIVATE_INSURANCE1',
 	'Nurse_ID', 'NURSE_0_BIRTH_YEAR']
 
-	################################ bootstrap cv ###############################
+	############################################## bootstrap cv ###############################################
 	# split data into training and test
 	last_train_year = 2009 #so means test_df starts from 2010
 	column_name = "client_enrollment_yr"
@@ -444,8 +445,8 @@ if __name__ == '__main__':
 	from sklearn.ensemble import GradientBoostingClassifier as GBC
 	from sklearn.ensemble import AdaBoostClassifier as ABC
 	
-	# classifiers = [LR, KNC, RFC, DTC, BC, GBC]
-	classifiers = [BC, GBC, ABC]
+	# classifiers = [LR, KNC, RFC, DTC, BC, GBC, ABC]
+	classifiers = [ABC]
 
 	import itertools as iter
 	dic_param_vals = {
@@ -455,11 +456,11 @@ if __name__ == '__main__':
 		RFC:{"n_estimators":[10, 20, 50], "max_features":["auto","log2"], "max_depth":[3, 6, None]},
 		DTC:{"criterion":["gini","entropy"],"max_features":["auto","log2",None], "max_depth":[3, 6, None]},
 		BC:{"base_estimator":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), GBC(n_estimators=200, learning_rate=0.1)],"n_estimators":[5, 10, 15], "max_samples":[0.5, 0.7, 1.0], "max_features":[0.5, 0.7, 1.0]},
-		GBC:{"init":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), BC(n_estimators=15, max_samples=1.0, max_features=0.5)],"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]},
-		ABC:{"base_estimator":[None, LR(), RFC(n_estimators=25, max_features="auto", max_depth=None), BC(n_estimators=15, max_samples=1.0, max_features=0.5)], "n_estimators":[30, 50, 100], "learning_rate":[0.5, 1.0]}
+		GBC:{"learning_rate":[0.05, 0.1, 0.3], "n_estimators":[100, 150, 200]},
+		ABC:{"n_estimators":[30, 50, 100], "learning_rate":[0.5, 1.0]}
 	}
 	
-	list_threshold = np.arange(0.25,0.5,0.05)
+	list_threshold = np.arange(0.3,0.4,0.05)
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision_score","train_time","test_time"])
 	evaluation_results = pd.DataFrame(columns=metrics)
 	for classifier in classifiers:
@@ -504,3 +505,93 @@ if __name__ == '__main__':
 	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0,0])))
 	evaluation_results.loc["baseline"] = baseline_dict
 	evaluation_results.to_csv("parametergridsearch.csv")
+
+	'''
+	################################ if split the sorted dataframe evenly ##################################
+	# Build classifier and yield predictions
+	from sklearn.svm import LinearSVC as LSVC
+	from sklearn.ensemble import RandomForestClassifier as RFC
+	from sklearn.neighbors import KNeighborsClassifier as KNC
+	from sklearn.tree import DecisionTreeClassifier as DTC
+	from sklearn.linear_model import LogisticRegression as LR
+	from sklearn.ensemble import BaggingClassifier as BC
+	from sklearn.ensemble import GradientBoostingClassifier as GBC
+	
+	logit = LR(fit_intercept=False)
+	neighb = KNC(n_neighbors=15,weights='uniform')#'distance', experiment with n is odd
+	svm = LSVC(C=1.0, kernel='linear')#kernel='rbf' or 'linear' or 'poly' C=1.0 is default
+	randomforest = RFC(n_estimators=20,criterion='gini',max_depth=15) #n is 10 default criterion='gini' or 'entropy'
+	decisiontree = DTC(criterion='gini')#can also be 'entropy'
+	bagging = BC(base_estimator=None,n_estimators=40)#pass in base estimator as logit maybe? Not trained tho! 
+	boostin = GBC(loss='deviance',learning_rate=0.15,n_estimators=100,max_depth=3)#loss='exponential', learning_rate=0.1 which is default
+	classifiers = [logit, neighb, svm, randomforest, decisiontree, boostin, bagging] 
+
+	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","train_time","test_time"])#"auc_prc"
+	evaluation_result = pd.DataFrame(columns=metrics)
+
+	# Sequential cross-validation
+	split_index = sequential_cv_index(len(df), 5, 0.4, 0.8)
+	
+	for classifier in classifiers:
+		name = reduce(lambda x,y: x+y, re.findall('[A-Z][^a-z]*', str(classifier).strip("'>")))
+		id_num = 1
+		for train_index, test_index in split_index:
+			cv_train = df.iloc[train_index]
+			cv_test = df.iloc[test_index]
+
+			#impute 
+			#make dummy indicators for columns with large numbers of missing values
+			df_mind_train = run_missing_indicator(cv_train,missing_cols)
+			df_mind_test = run_missing_indicator(cv_test,missing_cols)
+
+			#fill_nans
+			for col_name in NANCOLS_CAT_BINARY:
+				df_mind_train= fill_mode(df_mind_train,col_name)
+				df_mind_test= fill_mode(df_mind_test,col_name)
+
+			for col_name in NUMERICAL:
+				df_mind_train = fill_median(df_mind_train,col_name)
+				df_mind_test = fill_median(df_mind_test, col_name)
+
+			df_mind_train = fill_median(df_mind_train,"MotherNurseAgeDiff")
+			df_mind_test = fill_median(df_mind_test,"MotherNurseAgeDiff")
+
+			# Transforming features 
+			df_train = cat_var_to_binary(df_mind_train,CATEGORICAL_2)
+			df_test = cat_var_to_binary(df_mind_test,CATEGORICAL_2)
+
+			df_train = binary_transform(df_train, BOOLEAN)
+			df_test = binary_transform(df_test, BOOLEAN)
+
+			create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_train)
+			create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_train)
+			create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_train)
+			create_match_feature("MomsRE_WhiteNH", "nurserace_white", "whiteMatch", df_test)
+			create_match_feature("MomsRE_Hispanic or Latina", "nurse_hispanic", "hispanicMatch", df_test)
+			create_match_feature("MomsRE_BlackNH", "nurserace_black", "blackMatch", df_test)
+
+			number_train = (missing(df_train)>0).sum()
+			number_test = (missing(df_test)>0).sum()
+			print "NUMBER OF COLS with missing values in df_train", number_train
+			print "NUMBER OF COLS with missing values in df_test", number_test
+	
+			# Model
+			# Set dependent and independent variables / feature selection
+			cols_to_drop = ["Nurse_ID", "NURSE_0_BIRTH_YEAR"]
+			for col in cols_to_drop:
+				df_train.drop(col, axis=1, inplace=True)
+				df_test.drop(col, axis=1, inplace=True) 
+			y_col = 'premature'
+			x_cols = df_train.columns[3:]
+
+			y_pred, y_pred_prob, y_true, train_time, test_time = run_cv(df_train, df_test, x_cols, y_col, classifier)
+			dic, conf_matrix = evaluate(name+str(id_num), y_true, y_pred, y_pred_prob, train_time, test_time)
+			# print name
+			# print conf_matrix
+			evaluation_result.loc[name+str(id_num)] = dic
+			id_num += 1
+	baseline = str(1-df_test.describe()[y_col]["mean"])
+	baseline_dict = dict(zip(metrics,pd.Series([baseline,0,0,0,0,0,0])))
+	evaluation_result.loc["baseline"] = baseline_dict
+	# print evaluation_result
+	'''

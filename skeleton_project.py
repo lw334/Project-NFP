@@ -239,7 +239,7 @@ def evaluate(name, y, y_pred, y_pred_prob, train_time, test_time, threshold):
 def precision_recall_curve(y_true, y_pred_prob, model_name):
 	from sklearn.metrics import precision_recall_curve
 	p, r, th = precision_recall_curve(y_true, y_pred_prob)
-	graph_name = 'Precision-Recall curve' + model_name
+	graph_name = 'Precision-Recall curve for ' + model_name
 	plt.clf()
 	graph = plt.plot(r, p, label=graph_name)
 	plt.xlabel('Recall')
@@ -340,8 +340,8 @@ def plot_precision_recall_n(y_true, y_prob, model_name):
 	ax2 = ax1.twinx()
 	ax2.plot(pct_above_per_thresh, recall_curve, 'r')
 	ax2.set_ylabel('recall', color='r')
-	fig.show()
-	name = model_name + " Precision Recall vs Population"+ ".png"
+	# fig.show()
+	name = model_name + " Precision Recall vs Population for "+ ".png"
 	plt.title(name)
 	plt.savefig(name)
 	return fig
@@ -363,8 +363,8 @@ def plot_precision_recall_thresh(y_true, y_prob, model_name):
 	ax2.set_ylabel('recall', color='r')
 	#ax1.grid(True)
 	#ax2.grid(True)
-	fig.show()
-	name = model_name + " Precision Recall vs Threshold"+ ".png"
+	# fig.show()
+	name = model_name + " Precision Recall vs Threshold for "+ ".png"
 	plt.title(name)
 	plt.savefig(name)
 	return fig
@@ -469,6 +469,7 @@ if __name__ == '__main__':
 	df_in = readcsv_funct(input_file)
 	#drop rows where premature values are missing
 	df = df_in.dropna(subset = ['premature'])
+	print "Number of clients: "+str(len(df))
 	df["edd_enrollment_interval_weeks"]=df["edd_enrollment_interval_weeks"].str.replace(',', '').astype(float)
 	df["NURSE_0_BIRTH_YEAR"] = df["NURSE_0_BIRTH_YEAR"].str.replace(',', '').astype(float)
 
@@ -605,6 +606,7 @@ if __name__ == '__main__':
 	# Set dependent and independent variables
 	y_col = 'premature'
 	x_cols = df_train.columns[3:]
+	print "Number of features: "+str(len(x_cols))
 
 	# Build classifier and yield predictions
 	from sklearn.svm import LinearSVC as LSVC
@@ -626,15 +628,17 @@ if __name__ == '__main__':
 	bagging_2 = BC(n_estimators=15, max_samples=1.0, max_features=0.5)
 	boosting = GBC(n_estimators=100, learning_rate=0.3)
 	boosting_2 = GBC(n_estimators=200, learning_rate=0.1)
+	bagging_test = BC(n_estimators=5, max_samples=0.5, max_features=0.5)
 
 	#classifiers = [randomforest, other_randomforest, bagging, bagging_2, boosting, boosting_2]
-	classifiers = [randomforest,bagging_2,boosting_2]
+	classifiers = [randomforest,bagging_2,boosting_2, bagging_test]
+	# classifiers=[bagging_test]
 	
 	###REMEMBER TO RUN run_cv_parameters_set when doing decision tree plot!
 	metrics = pd.Series(["accuracy","precision","recall","f1","auc_roc","average_precision","train_time","test_time"])
 	evaluation_result = pd.DataFrame(columns=metrics)
-	threshold_dict = {randomforest:0.35,other_randomforest:0.25, bagging:0.25, bagging_2:0.35, boosting:0.4, boosting_2:0.3}
-	name_dict = {randomforest:"random forest 20",other_randomforest:"random forest 50", bagging:"bagging 10", bagging_2:"bagging 15", boosting:"boosting 100", boosting_2:"boosting 200"}
+	threshold_dict = {randomforest:0.25,other_randomforest:0.25, bagging:0.25, bagging_2:0.3, boosting:0.4, boosting_2:0.2, bagging_test:0.45}
+	name_dict = {randomforest:"Random Forest",other_randomforest:"random forest 50", bagging:"bagging 10", bagging_2:"Bagging", boosting:"boosting 100", boosting_2:"Boosting", bagging_test:"bagging"}
 	#threshold = 0.3
 	for classifier in classifiers:
 		threshold = threshold_dict[classifier]
@@ -670,7 +674,7 @@ if __name__ == '__main__':
 		model = decisiontree.fit(X_train, y_train)
 		plot_dt(model,x_cols)
 
-		
+
 	# For feature importance
 	#X_train = np.array(df_train[x_cols].as_matrix().astype(np.float))
 	#y_train = np.ravel(df_train[y_col].astype(np.float))
