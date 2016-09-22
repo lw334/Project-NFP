@@ -115,10 +115,7 @@ def impute_median(train_df, test_df, missing_col):
 
 # 4. Generate Features
 def create_binary_helper(x, condition):
-	if x >= condition:
-		return 1
-	else:
-		return 0
+	return x >= condition
 
 def create_binary(df,colname,condition):
 	df[str(colname +'_binary')] = df[colname].apply(lambda x: create_binary_helper(x,condition))
